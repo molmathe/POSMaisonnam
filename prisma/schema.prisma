@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================== ระบบจัดการพนักงาน & เงินเดือน ==================
+model Employee {
+  id          Int          @id @default(autoincrement())
+  name        String
+  dailyWage   Float        // ค่าแรงรายวัน
+  pinCode     String?      @unique // PIN สำหรับเจ้าของร้านใช้เช็คชื่อ (พนักงานทั่วไปจะไม่มี)
+  role        Role         @default(STAFF)
+  attendances Attendance[]
+}
+
+enum Role {
+  OWNER
+  STAFF
+}
+
+model Attendance {
+  id          Int      @id @default(autoincrement())
+  employeeId  Int
+  date        DateTime @default(now())
+  extraPay    Float    @default(0) // เงินพิเศษ
+  employee    Employee @relation(fields: [employeeId], references: [id])
+}
+
+// ================== ระบบร้าน & ลูกค้า ==================
+model Table {
+  id     Int     @id @default(autoincrement())
+  name   String  @unique // เช่น โต๊ะ 1, โต๊ะ 2, VIP
+  orders Order[]
+}
+
+model Customer {
+  id     Int     @id @default(autoincrement())
+  name   String  @unique
+  orders Order[]
+}
+
+// ================== ระบบเมนูอาหาร ==================
+model Category {
+  id    Int     @id @default(autoincrement())
+  name  String  // จานหลัก, ทานเล่น, ของหวาน, น้ำ, น้ำอัดลม
+  menus Menu[]
+}
+
+model Menu {
+  id            Int           @id @default(autoincrement())
+  categoryId    Int
+  nameTh        String
+  nameEn        String?
+  imageUrl      String?
+  price         Float
+  cost          Float?        // เผื่ออนาคต: ต้นทุน
+  category      Category      @relation(fields: [categoryId], references: [id])
+  orderItems    OrderItem[]
+  menuToppings  MenuTopping[] // เมนูนี้เลือก topping อะไรได้บ้าง (ว่าง = ใช้ได้ทุก topping)
+}
+
+model MenuTopping {
+  menuId    Int
+  toppingId Int
+  menu      Menu    @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  topping   Topping @relation(fields: [toppingId], references: [id], onDelete: Cascade)
+  @@id([menuId, toppingId])
+}
+
+model Topping {
+  id            Int           @id @default(autoincrement())
+  name          String        // พิเศษ, ไข่ดาว, เพิ่มหมู
+  price         Float
+  menuToppings  MenuTopping[]
+}
+
+model SpecialRequest {
+  id   Int    @id @default(autoincrement())
+  name String // ไม่พริก, เผ็ดน้อย, ไม่ผัก
+}
+
+// ================== ระบบออเดอร์ ==================
+model Order {
+  id         Int         @id @default(autoincrement())
+  tableId    Int?
+  customerId Int?
+  status     OrderStatus @default(PENDING) // รอชำระ, ชำระแล้ว, ยกเลิก
+  totalPrice Float       @default(0)
+  
+  // สำหรับ QR Code ตรวจสอบรายการ 24 ชม.
+  qrToken    String?     @unique
+  qrExpires  DateTime?
+
+  table      Table?      @relation(fields: [tableId], references: [id])
+  customer   Customer?   @relation(fields: [customerId], references: [id])
+  items      OrderItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+model OrderItem {
+  id           Int     @id @default(autoincrement())
+  orderId      Int
+  menuId       Int
+  quantity     Int
+  price        Float   // ราคา ณ วันที่สั่ง
+  note         String? // Freetext สำหรับหมายเหตุเพิ่มเติม
+
+  // เก็บข้อมูล Topping และ Request แบบ JSON เพื่อความยืดหยุ่น หรือจะแยก Table ก็ได้ (ในที่นี้ใช้ JSON Array ของ ID เพื่อง่ายต่อการดึงข้อมูล)
+  toppings     Json?   // ex. [{ id: 1, name: "ไข่ดาว", price: 10 }]
+  requests     Json?   // ex. ["ไม่พริก", "ไม่ผัก"]
+
+  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menu         Menu    @relation(fields: [menuId], references: [id])
+}
+
+// ================== ตั้งค่าระบบ (ใบเสร็จ, การแจ้งเตือน) ==================
+model SystemSetting {
+  id          Int     @id @default(autoincrement())
+  key         String  @unique // เช่น RECEIPT_WIDTH, RECEIPT_HEADER, ENABLE_LINE_NOTI
+  value       String
+  description String?
+}
