@@ -9,6 +9,8 @@ type Category = {
 
 type Topping = { id: number; name: string; price: number };
 
+type SpecialRequest = { id: number; name: string };
+
 type Menu = {
   id: number;
   nameTh: string;
@@ -18,18 +20,20 @@ type Menu = {
   categoryId: number;
   category?: Category;
   allowedToppingIds?: number[];
+  allowedRequestIds?: number[];
 };
 
 interface Props {
   initialMenus: Menu[];
   categories: Category[];
   toppings: Topping[];
+  specialRequests: SpecialRequest[];
 }
 
-export default function MenuList({ initialMenus, categories, toppings }: Props) {
+export default function MenuList({ initialMenus, categories, toppings, specialRequests }: Props) {
   const [menus, setMenus] = useState<Menu[]>(initialMenus);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [draft, setDraft] = useState<Partial<Menu> & { toppingIds?: number[] }>({});
+  const [draft, setDraft] = useState<Partial<Menu> & { toppingIds?: number[]; requestIds?: number[] }>({});
 
   function startEdit(menu: Menu) {
     setEditingId(menu.id);
@@ -40,6 +44,7 @@ export default function MenuList({ initialMenus, categories, toppings }: Props) 
       imageUrl: menu.imageUrl ?? "",
       categoryId: menu.categoryId,
       toppingIds: menu.allowedToppingIds ?? [],
+      requestIds: menu.allowedRequestIds ?? [],
     });
   }
 
@@ -62,6 +67,7 @@ export default function MenuList({ initialMenus, categories, toppings }: Props) 
 
     const old = menus;
     const toppingIds = Array.isArray(draft.toppingIds) ? draft.toppingIds : [];
+    const requestIds = Array.isArray(draft.requestIds) ? draft.requestIds : [];
     const updatedMenus = menus.map((m) =>
       m.id === id
         ? {
@@ -74,6 +80,7 @@ export default function MenuList({ initialMenus, categories, toppings }: Props) 
             category:
               categories.find((c) => c.id === Number(draft.categoryId)) ?? m.category,
             allowedToppingIds: toppingIds,
+            allowedRequestIds: requestIds,
           }
         : m
     );
@@ -90,6 +97,7 @@ export default function MenuList({ initialMenus, categories, toppings }: Props) 
           categoryId: draft.categoryId,
           imageUrl: draft.imageUrl || null,
           toppingIds: Array.isArray(draft.toppingIds) ? draft.toppingIds : [],
+          requestIds: Array.isArray(draft.requestIds) ? draft.requestIds : [],
         }),
       });
       if (!res.ok) {
@@ -192,11 +200,59 @@ export default function MenuList({ initialMenus, categories, toppings }: Props) 
                       onChange={(e) =>
                         updateDraft("imageUrl", e.target.value || "")
                       }
-                      placeholder="รูปภาพ (URL - ไม่บังคับ)"
+                      placeholder="รูปภาพ (URL หรือ /uploads/...)"
                     />
+                    <label className="text-[11px] text-gray-600 px-2 py-1 rounded border border-gray-300 bg-white cursor-pointer hover:bg-gray-50">
+                      เปลี่ยนรูป
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const f = e.target.files?.[0];
+                          if (!f) return;
+                          try {
+                            const form = new FormData();
+                            form.append("file", f);
+                            const res = await fetch("/api/admin/uploads", {
+                              method: "POST",
+                              body: form,
+                            });
+                            if (!res.ok) {
+                              alert("อัปโหลดรูปภาพไม่สำเร็จ");
+                              return;
+                            }
+                            const data = await res.json();
+                            setDraft((prev) => ({
+                              ...prev,
+                              imageUrl: data.url as string,
+                            }));
+                          } catch {
+                            alert("อัปโหลดรูปภาพไม่สำเร็จ");
+                          } finally {
+                            e.target.value = "";
+                          }
+                        }}
+                      />
+                    </label>
                   </div>
+                  {(draft.imageUrl as string)?.trim() && (
+                    <div className="mt-1.5">
+                      <p className="text-[11px] text-gray-500 mb-0.5">ตัวอย่างรูปเมนู</p>
+                      <img
+                        src={(draft.imageUrl as string).trim()}
+                        alt="ตัวอย่างรูปเมนู"
+                        className="h-20 w-auto max-w-[160px] rounded-md border border-gray-200 object-cover bg-gray-50"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                  )}
                   {toppings.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-1">
+                      <span className="text-xs text-gray-500 w-full">Topping:</span>
                       {toppings.map((t) => {
                         const ids = draft.toppingIds ?? [];
                         const checked = ids.includes(t.id);
@@ -216,6 +272,33 @@ export default function MenuList({ initialMenus, categories, toppings }: Props) 
                               className="rounded border-gray-300"
                             />
                             <span>{t.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {specialRequests.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      <span className="text-xs text-gray-500 w-full">คำขอพิเศษ:</span>
+                      {specialRequests.map((r) => {
+                        const ids = draft.requestIds ?? [];
+                        const checked = ids.includes(r.id);
+                        return (
+                          <label key={r.id} className="inline-flex items-center gap-1 text-xs cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() =>
+                                setDraft((p) => ({
+                                  ...p,
+                                  requestIds: checked
+                                    ? ids.filter((id) => id !== r.id)
+                                    : [...ids, r.id],
+                                }))
+                              }
+                              className="rounded border-gray-300"
+                            />
+                            <span>{r.name}</span>
                           </label>
                         );
                       })}

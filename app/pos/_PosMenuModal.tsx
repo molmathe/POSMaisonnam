@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-type Menu = { id: number; nameTh: string; nameEn: string | null; price: number };
+type Menu = { id: number; nameTh: string; nameEn: string | null; price: number; imageUrl?: string | null };
 type Topping = { id: number; name: string; price: number };
 type SpecialRequest = { id: number; name: string };
 type OrderItem = {
@@ -36,7 +36,9 @@ export default function PosMenuModal({
   loading: boolean;
 }) {
   const allowedToppingIds = (menu as { allowedToppingIds?: number[] }).allowedToppingIds;
-  const displayToppings = allowedToppingIds?.length ? toppings.filter((t) => allowedToppingIds.includes(t.id)) : toppings;
+  const allowedRequestIds = (menu as { allowedRequestIds?: number[] }).allowedRequestIds;
+  const displayToppings = allowedToppingIds?.length ? toppings.filter((t) => allowedToppingIds.includes(t.id)) : [];
+  const displayRequests = allowedRequestIds?.length ? specialRequests.filter((r) => allowedRequestIds.includes(r.id)) : [];
   const [quantity, setQuantity] = useState(1);
   const [selectedToppings, setSelectedToppings] = useState<{ id: number; name: string; price: number }[]>([]);
   const [selectedRequests, setSelectedRequests] = useState<string[]>([]);
@@ -90,9 +92,21 @@ export default function PosMenuModal({
         className="bg-white w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900">{menu.nameTh}</h3>
-          <button type="button" onClick={onClose} className="text-gray-500 p-1">
+        <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            {menu.imageUrl && (
+              <img
+                src={menu.imageUrl}
+                alt=""
+                className="h-16 w-16 rounded-lg object-cover border border-gray-200 mb-2"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            )}
+            <h3 className="font-semibold text-gray-900">{menu.nameTh}</h3>
+          </div>
+          <button type="button" onClick={onClose} className="text-gray-500 p-1 shrink-0">
             ✕
           </button>
         </div>
@@ -140,11 +154,11 @@ export default function PosMenuModal({
             </div>
           )}
 
-          {specialRequests.length > 0 && (
+          {displayRequests.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">คำขอพิเศษ</label>
               <div className="flex flex-wrap gap-2">
-                {specialRequests.map((r) => {
+                {displayRequests.map((r) => {
                   const selected = selectedRequests.includes(r.name);
                   return (
                     <button

@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = Number(params.id);
+  const { id: idParam } = await params;
+  const id = Number(idParam);
   if (!id || Number.isNaN(id)) {
     return NextResponse.json({ message: "ID ไม่ถูกต้อง" }, { status: 400 });
   }
@@ -25,14 +26,35 @@ export async function POST(
       );
     }
 
-    const totalPrice = order.items.reduce(
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      body = {};
+    }
+
+    const rawDiscount = Number(body.discount ?? 0);
+    const discount = Number.isFinite(rawDiscount) && rawDiscount > 0 ? rawDiscount : 0;
+    const methodRaw = typeof body.payMethod === "string" ? body.payMethod.toUpperCase() : null;
+    const payMethod =
+      methodRaw === "CASH" || methodRaw === "QR" ? (methodRaw as "CASH" | "QR") : null;
+
+    const subtotal = order.items.reduce(
       (s, i) => s + i.price * i.quantity,
       0
     );
 
+    const totalPrice = Math.max(0, subtotal - discount);
+
     await prisma.order.update({
       where: { id },
-      data: { status: "PAID", totalPrice },
+      data: {
+        status: "PAID",
+        totalPrice,
+        discount,
+        payMethod,
+        paidAt: new Date(),
+      },
     });
 
     const updated = await prisma.order.findUnique({

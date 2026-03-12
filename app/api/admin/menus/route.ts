@@ -6,12 +6,20 @@ export async function GET() {
     include: {
       category: true,
       menuToppings: { select: { toppingId: true } },
+      menuSpecialRequests: { select: { specialRequestId: true } },
     },
     orderBy: { id: "asc" },
   });
   const menus = menusRaw.map((m) => {
-    const { menuToppings, ...rest } = m as typeof m & { menuToppings?: { toppingId: number }[] };
-    return { ...rest, allowedToppingIds: menuToppings?.map((mt) => mt.toppingId) ?? [] };
+    const { menuToppings, menuSpecialRequests, ...rest } = m as typeof m & {
+      menuToppings?: { toppingId: number }[];
+      menuSpecialRequests?: { specialRequestId: number }[];
+    };
+    return {
+      ...rest,
+      allowedToppingIds: menuToppings?.map((mt) => mt.toppingId) ?? [],
+      allowedRequestIds: menuSpecialRequests?.map((mr) => mr.specialRequestId) ?? [],
+    };
   });
   return NextResponse.json(menus);
 }
@@ -32,6 +40,9 @@ export async function POST(req: NextRequest) {
         : null;
     const toppingIds = Array.isArray(body.toppingIds)
       ? body.toppingIds.filter((id: unknown) => typeof id === "number" && Number.isInteger(id))
+      : [];
+    const requestIds = Array.isArray(body.requestIds)
+      ? body.requestIds.filter((id: unknown) => typeof id === "number" && Number.isInteger(id))
       : [];
 
     if (!nameTh || !categoryId || Number.isNaN(price) || price <= 0) {
@@ -54,6 +65,11 @@ export async function POST(req: NextRequest) {
     if (toppingIds.length > 0) {
       await prisma.menuTopping.createMany({
         data: toppingIds.map((toppingId: number) => ({ menuId: menu.id, toppingId })),
+      });
+    }
+    if (requestIds.length > 0) {
+      await prisma.menuSpecialRequest.createMany({
+        data: requestIds.map((specialRequestId: number) => ({ menuId: menu.id, specialRequestId })),
       });
     }
 

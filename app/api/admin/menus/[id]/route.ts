@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = Number(params.id);
+  const { id: idParam } = await params;
+  const id = Number(idParam);
   if (!id || Number.isNaN(id)) {
     return NextResponse.json({ message: "ID ไม่ถูกต้อง" }, { status: 400 });
   }
@@ -25,6 +26,9 @@ export async function PUT(
         : null;
     const toppingIds = Array.isArray(body.toppingIds)
       ? body.toppingIds.filter((id: unknown) => typeof id === "number" && Number.isInteger(id))
+      : undefined;
+    const requestIds = Array.isArray(body.requestIds)
+      ? body.requestIds.filter((id: unknown) => typeof id === "number" && Number.isInteger(id))
       : undefined;
 
     if (!nameTh || !categoryId || Number.isNaN(price) || price <= 0) {
@@ -53,14 +57,33 @@ export async function PUT(
         });
       }
     }
+    if (requestIds !== undefined) {
+      await prisma.menuSpecialRequest.deleteMany({ where: { menuId: id } });
+      if (requestIds.length > 0) {
+        await prisma.menuSpecialRequest.createMany({
+          data: requestIds.map((specialRequestId: number) => ({ menuId: id, specialRequestId })),
+        });
+      }
+    }
 
     const updated = await prisma.menu.findUnique({
       where: { id },
-      include: { category: true, menuToppings: { select: { toppingId: true } } },
+      include: {
+        category: true,
+        menuToppings: { select: { toppingId: true } },
+        menuSpecialRequests: { select: { specialRequestId: true } },
+      },
     });
     if (!updated) return NextResponse.json({ message: "ไม่พบเมนู" }, { status: 404 });
-    const { menuToppings, ...rest } = updated as typeof updated & { menuToppings?: { toppingId: number }[] };
-    const out = { ...rest, allowedToppingIds: menuToppings?.map((mt) => mt.toppingId) ?? [] };
+    const { menuToppings, menuSpecialRequests, ...rest } = updated as typeof updated & {
+      menuToppings?: { toppingId: number }[];
+      menuSpecialRequests?: { specialRequestId: number }[];
+    };
+    const out = {
+      ...rest,
+      allowedToppingIds: menuToppings?.map((mt) => mt.toppingId) ?? [],
+      allowedRequestIds: menuSpecialRequests?.map((mr) => mr.specialRequestId) ?? [],
+    };
     return NextResponse.json(out);
   } catch (err) {
     console.error(err);
@@ -73,9 +96,10 @@ export async function PUT(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = Number(params.id);
+  const { id: idParam } = await params;
+  const id = Number(idParam);
   if (!id || Number.isNaN(id)) {
     return NextResponse.json({ message: "ID ไม่ถูกต้อง" }, { status: 400 });
   }

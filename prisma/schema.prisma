@@ -51,16 +51,17 @@ model Category {
 }
 
 model Menu {
-  id            Int           @id @default(autoincrement())
-  categoryId    Int
-  nameTh        String
-  nameEn        String?
-  imageUrl      String?
-  price         Float
-  cost          Float?        // เผื่ออนาคต: ต้นทุน
-  category      Category      @relation(fields: [categoryId], references: [id])
-  orderItems    OrderItem[]
-  menuToppings  MenuTopping[] // เมนูนี้เลือก topping อะไรได้บ้าง (ว่าง = ใช้ได้ทุก topping)
+  id                  Int                  @id @default(autoincrement())
+  categoryId          Int
+  nameTh              String
+  nameEn              String?
+  imageUrl            String?
+  price               Float
+  cost                Float?               // เผื่ออนาคต: ต้นทุน
+  category            Category             @relation(fields: [categoryId], references: [id])
+  orderItems          OrderItem[]
+  menuToppings        MenuTopping[]        // เมนูนี้เลือก topping อะไรได้บ้าง (ว่าง = ไม่แสดงบน POS)
+  menuSpecialRequests MenuSpecialRequest[] // เมนูนี้เลือกคำขอพิเศษอะไรได้บ้าง (ว่าง = ไม่แสดงบน POS)
 }
 
 model MenuTopping {
@@ -79,8 +80,17 @@ model Topping {
 }
 
 model SpecialRequest {
-  id   Int    @id @default(autoincrement())
-  name String // ไม่พริก, เผ็ดน้อย, ไม่ผัก
+  id                  Int                  @id @default(autoincrement())
+  name                String               // ไม่พริก, เผ็ดน้อย, ไม่ผัก
+  menuSpecialRequests MenuSpecialRequest[]
+}
+
+model MenuSpecialRequest {
+  menuId          Int
+  specialRequestId Int
+  menu            Menu           @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  specialRequest  SpecialRequest @relation(fields: [specialRequestId], references: [id], onDelete: Cascade)
+  @@id([menuId, specialRequestId])
 }
 
 // ================== ระบบออเดอร์ ==================
@@ -90,10 +100,15 @@ model Order {
   customerId Int?
   status     OrderStatus @default(PENDING) // รอชำระ, ชำระแล้ว, ยกเลิก
   totalPrice Float       @default(0)
+  discount   Float       @default(0)        // ส่วนลดทั้งบิล (บาท)
   
   // สำหรับ QR Code ตรวจสอบรายการ 24 ชม.
   qrToken    String?     @unique
   qrExpires  DateTime?
+
+  // ข้อมูลการชำระเงิน
+  payMethod  PaymentMethod?
+  paidAt     DateTime?
 
   table      Table?      @relation(fields: [tableId], references: [id])
   customer   Customer?   @relation(fields: [customerId], references: [id])
@@ -108,6 +123,11 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum PaymentMethod {
+  CASH
+  QR
+}
+
 model OrderItem {
   id           Int     @id @default(autoincrement())
   orderId      Int
@@ -119,6 +139,9 @@ model OrderItem {
   // เก็บข้อมูล Topping และ Request แบบ JSON เพื่อความยืดหยุ่น หรือจะแยก Table ก็ได้ (ในที่นี้ใช้ JSON Array ของ ID เพื่อง่ายต่อการดึงข้อมูล)
   toppings     Json?   // ex. [{ id: 1, name: "ไข่ดาว", price: 10 }]
   requests     Json?   // ex. ["ไม่พริก", "ไม่ผัก"]
+
+  // ใช้สำหรับ track ว่ารายการนี้ส่งเข้าครัวแล้วหรือยัง
+  sentToKitchen Boolean @default(false)
 
   order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   menu         Menu    @relation(fields: [menuId], references: [id])

@@ -109,6 +109,8 @@ export default function SettingsClient({ initialSettings }: Props) {
       });
       setSaved("PAYMENT_QR_IMAGE");
       setTimeout(() => setSaved(null), 2000);
+      const input = document.getElementById("qr-upload") as HTMLInputElement | null;
+      if (input) input.value = "";
     } catch {
       alert("อัปโหลดรูปภาพไม่สำเร็จ");
     } finally {
@@ -145,6 +147,7 @@ export default function SettingsClient({ initialSettings }: Props) {
               id="qr-upload"
               type="file"
               accept="image/*"
+              capture="environment"
               className="hidden"
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 const f = e.target.files?.[0];
@@ -156,7 +159,10 @@ export default function SettingsClient({ initialSettings }: Props) {
                 <img
                   src={qrPreview}
                   alt="QR ชำระเงิน"
-                  className="h-40 w-auto object-contain rounded-lg border border-gray-200"
+                  className="h-40 w-auto object-contain rounded-lg border border-gray-200 bg-gray-50"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
                 />
                 <p className="text-xs text-gray-500">กดหรือลากเพื่อเปลี่ยนรูป QR</p>
               </div>

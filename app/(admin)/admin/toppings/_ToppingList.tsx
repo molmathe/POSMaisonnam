@@ -15,7 +15,7 @@ interface Props {
 export default function ToppingList({ initialToppings }: Props) {
   const [toppings, setToppings] = useState<Topping[]>(initialToppings);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [draft, setDraft] = useState<Partial<Topping>>({});
+  const [draft, setDraft] = useState<{ name?: string; price?: number | string }>({});
 
   function startEdit(t: Topping) {
     setEditingId(t.id);
@@ -28,7 +28,7 @@ export default function ToppingList({ initialToppings }: Props) {
   }
 
   async function saveEdit(id: number) {
-    if (!draft.name || draft.price === undefined) return;
+    if (!draft.name || draft.price === undefined || draft.price === "") return;
     const numericPrice = Number(draft.price);
     if (Number.isNaN(numericPrice) || numericPrice < 0) {
       alert("กรุณากรอกราคาให้ถูกต้อง");

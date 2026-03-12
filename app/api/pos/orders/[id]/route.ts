@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = Number(params.id);
+  const { id: idParam } = await params;
+  const id = Number(idParam);
   if (!id || Number.isNaN(id)) {
     return NextResponse.json({ message: "ID ไม่ถูกต้อง" }, { status: 400 });
   }
@@ -25,16 +26,36 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = Number(params.id);
+  const { id: idParam } = await params;
+  const id = Number(idParam);
   if (!id || Number.isNaN(id)) {
     return NextResponse.json({ message: "ID ไม่ถูกต้อง" }, { status: 400 });
   }
   try {
     const body = await req.json();
     const data: { tableId?: number | null; customerId?: number | null } = {};
-    if (body.tableId !== undefined) data.tableId = body.tableId ? Number(body.tableId) : null;
+    if (body.tableId !== undefined) {
+      const targetTableId = body.tableId ? Number(body.tableId) : null;
+      if (targetTableId) {
+        const existing = await prisma.order.findFirst({
+          where: {
+            tableId: targetTableId,
+            status: "PENDING",
+            NOT: { id },
+          },
+          select: { id: true },
+        });
+        if (existing) {
+          return NextResponse.json(
+            { message: "โต๊ะปลายทางมีบิลค้างอยู่แล้ว" },
+            { status: 400 }
+          );
+        }
+      }
+      data.tableId = targetTableId;
+    }
     if (body.customerId !== undefined) data.customerId = body.customerId ? Number(body.customerId) : null;
 
     const order = await prisma.order.update({

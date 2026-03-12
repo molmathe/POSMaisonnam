@@ -4,18 +4,21 @@ import { useState, FormEvent, DragEvent, ChangeEvent } from "react";
 
 type Category = { id: number; name: string };
 type Topping = { id: number; name: string; price: number };
+type SpecialRequest = { id: number; name: string };
 
 interface Props {
   categories: Category[];
   toppings: Topping[];
+  specialRequests: SpecialRequest[];
 }
 
-export default function MenuForm({ categories, toppings }: Props) {
+export default function MenuForm({ categories, toppings, specialRequests }: Props) {
   const [nameTh, setNameTh] = useState("");
   const [nameEn, setNameEn] = useState("");
   const [price, setPrice] = useState("");
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [selectedToppingIds, setSelectedToppingIds] = useState<number[]>([]);
+  const [selectedRequestIds, setSelectedRequestIds] = useState<number[]>([]);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -99,6 +102,7 @@ export default function MenuForm({ categories, toppings }: Props) {
           categoryId,
           imageUrl: uploadedUrl || null,
           toppingIds: selectedToppingIds,
+          requestIds: selectedRequestIds,
         }),
       });
       if (!res.ok) {
@@ -110,6 +114,7 @@ export default function MenuForm({ categories, toppings }: Props) {
       setPrice("");
       setCategoryId("");
       setSelectedToppingIds([]);
+      setSelectedRequestIds([]);
       setImageUrl(null);
       setFile(null);
       window.location.reload();
@@ -188,7 +193,7 @@ export default function MenuForm({ categories, toppings }: Props) {
       {toppings.length > 0 && (
         <div className="space-y-1">
           <label className="block text-xs md:text-sm font-medium text-gray-700">
-            Topping ที่ใช้กับเมนูนี้ <span className="text-gray-400">(ไม่เลือก = ใช้ได้ทุก topping)</span>
+            Topping ที่แสดงบน POS <span className="text-gray-400">(ไม่เลือก = ไม่แสดง)</span>
           </label>
           <div className="flex flex-wrap gap-2">
             {toppings.map((t) => {
@@ -206,6 +211,34 @@ export default function MenuForm({ categories, toppings }: Props) {
                     className="rounded border-gray-300"
                   />
                   <span>{t.name} (+฿{t.price.toFixed(0)})</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {specialRequests.length > 0 && (
+        <div className="space-y-1">
+          <label className="block text-xs md:text-sm font-medium text-gray-700">
+            คำขอพิเศษที่แสดงบน POS <span className="text-gray-400">(ไม่เลือก = ไม่แสดง)</span>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {specialRequests.map((r) => {
+              const checked = selectedRequestIds.includes(r.id);
+              return (
+                <label key={r.id} className="inline-flex items-center gap-1.5 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() =>
+                      setSelectedRequestIds((prev) =>
+                        checked ? prev.filter((id) => id !== r.id) : [...prev, r.id]
+                      )
+                    }
+                    className="rounded border-gray-300"
+                  />
+                  <span>{r.name}</span>
                 </label>
               );
             })}
@@ -238,6 +271,7 @@ export default function MenuForm({ categories, toppings }: Props) {
             id="menu-image-input"
             type="file"
             accept="image/*"
+            capture="environment"
             className="hidden"
             onChange={handleFileChange}
           />
@@ -245,16 +279,30 @@ export default function MenuForm({ categories, toppings }: Props) {
             ลากรูปเมนูมาวางที่นี่ หรือกดเพื่อเลือกไฟล์จากเครื่อง
           </p>
           <p className="text-[11px] text-gray-400">
-            รองรับไฟล์ภาพทั่วไป เช่น JPG, PNG
+            รองรับ JPG, PNG หรือใส่ URL ด้านล่าง
           </p>
         </div>
+        <input
+          type="url"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs mt-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+          placeholder="หรือใส่ URL รูปภาพ (เช่น /uploads/xxx.jpg)"
+          value={imageUrl && !imageUrl.startsWith("blob:") ? imageUrl : ""}
+          onChange={(e) => {
+            const v = e.target.value.trim() || null;
+            setImageUrl(v);
+            if (v) setFile(null);
+          }}
+        />
         {imageUrl && (
           <div className="mt-2">
             <p className="text-xs text-gray-500 mb-1">ตัวอย่างรูปเมนู</p>
             <img
               src={imageUrl}
               alt="ตัวอย่างรูปเมนู"
-              className="h-24 w-auto rounded-md border border-gray-200 object-cover"
+              className="h-24 w-auto max-w-full rounded-md border border-gray-200 object-cover bg-gray-50"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
             />
           </div>
         )}

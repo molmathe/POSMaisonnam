@@ -11,6 +11,7 @@ export async function GET() {
         include: {
           category: true,
           menuToppings: { select: { toppingId: true } },
+          menuSpecialRequests: { select: { specialRequestId: true } },
         },
         orderBy: { categoryId: "asc" },
       }),
@@ -19,10 +20,14 @@ export async function GET() {
     ]);
 
   const menus = menusRaw.map((m) => {
-    const { menuToppings, ...rest } = m as typeof m & { menuToppings?: { toppingId: number }[] };
+    const { menuToppings, menuSpecialRequests, ...rest } = m as typeof m & {
+      menuToppings?: { toppingId: number }[];
+      menuSpecialRequests?: { specialRequestId: number }[];
+    };
     return {
       ...rest,
       allowedToppingIds: menuToppings?.map((mt) => mt.toppingId) ?? [],
+      allowedRequestIds: menuSpecialRequests?.map((mr) => mr.specialRequestId) ?? [],
     };
   });
 

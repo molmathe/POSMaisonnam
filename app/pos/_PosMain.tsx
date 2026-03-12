@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ComponentProps } from "react";
 import PosMenuModal from "./_PosMenuModal";
 
 type Table = { id: number; name: string };
@@ -339,8 +339,20 @@ export default function PosMain({
               key={menu.id}
               type="button"
               onClick={() => setMenuModal(menu)}
-              className="text-left rounded-2xl border border-gray-100 bg-white p-4 hover:border-orange-300 hover:shadow-md transition-all group"
+              className="text-left rounded-2xl border border-gray-100 bg-white p-4 hover:border-orange-300 hover:shadow-md transition-all group overflow-hidden"
             >
+              {menu.imageUrl && (
+                <div className="aspect-square -mx-4 -mt-4 mb-3 bg-gray-100 overflow-hidden rounded-t-2xl">
+                  <img
+                    src={menu.imageUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                </div>
+              )}
               <div className="font-medium text-gray-800 text-sm line-clamp-2 group-hover:text-orange-600 transition-colors">
                 {menu.nameTh}
               </div>
@@ -434,7 +446,7 @@ export default function PosMain({
           toppings={data.toppings}
           specialRequests={data.specialRequests}
           editingItemId={editingItemId}
-          currentItem={editingItemId ? currentOrder?.items.find((i) => i.id === editingItemId) : null}
+          currentItem={editingItemId ? (currentOrder?.items.find((i) => i.id === editingItemId) as ComponentProps<typeof PosMenuModal>["currentItem"]) ?? undefined : undefined}
           onAdd={addItem}
           onUpdate={updateItem}
           onClose={() => {

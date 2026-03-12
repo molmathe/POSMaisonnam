@@ -6,11 +6,12 @@ import MenuList from "./_MenuList";
 export const dynamic = "force-dynamic";
 
 export default async function MenusPage() {
-  const [menusRaw, categories, toppings] = await Promise.all([
+  const [menusRaw, categories, toppings, specialRequests] = await Promise.all([
     prisma.menu.findMany({
       include: {
         category: true,
         menuToppings: { select: { toppingId: true } },
+        menuSpecialRequests: { select: { specialRequestId: true } },
       },
       orderBy: { id: "asc" },
     }),
@@ -18,10 +19,18 @@ export default async function MenusPage() {
       orderBy: { name: "asc" },
     }),
     prisma.topping.findMany({ orderBy: { id: "asc" } }),
+    prisma.specialRequest.findMany({ orderBy: { id: "asc" } }),
   ]);
   const menus = menusRaw.map((m) => {
-    const { menuToppings, ...rest } = m as typeof m & { menuToppings?: { toppingId: number }[] };
-    return { ...rest, allowedToppingIds: menuToppings?.map((mt) => mt.toppingId) ?? [] };
+    const { menuToppings, menuSpecialRequests, ...rest } = m as typeof m & {
+      menuToppings?: { toppingId: number }[];
+      menuSpecialRequests?: { specialRequestId: number }[];
+    };
+    return {
+      ...rest,
+      allowedToppingIds: menuToppings?.map((mt) => mt.toppingId) ?? [],
+      allowedRequestIds: menuSpecialRequests?.map((mr) => mr.specialRequestId) ?? [],
+    };
   });
 
   return (
@@ -52,7 +61,7 @@ export default async function MenusPage() {
             <p className="text-xs md:text-sm text-gray-500 mb-4">
               กรอกชื่อเมนู ราคา และเลือกหมวดหมู่ให้พร้อมใช้งานในหน้าบ้าน POS
             </p>
-            <MenuForm categories={categories} toppings={toppings} />
+            <MenuForm categories={categories} toppings={toppings} specialRequests={specialRequests} />
           </div>
         </section>
 
@@ -63,7 +72,7 @@ export default async function MenusPage() {
                 รายการเมนูทั้งหมด
               </h3>
             </div>
-            <MenuList initialMenus={menus} categories={categories} toppings={toppings} />
+            <MenuList initialMenus={menus} categories={categories} toppings={toppings} specialRequests={specialRequests} />
           </div>
         </section>
       </div>

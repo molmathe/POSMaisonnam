@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
-  const token = params.token?.trim();
+  const { token: tokenParam } = await params;
+  const token = tokenParam?.trim();
   if (!token) {
     return NextResponse.json({ message: "ไม่พบรหัส" }, { status: 400 });
   }

@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const orderId = Number(params.id);
+  const { id: idParam } = await params;
+  const orderId = Number(idParam);
   if (!orderId || Number.isNaN(orderId)) {
     return NextResponse.json({ message: "ID ไม่ถูกต้อง" }, { status: 400 });
   }

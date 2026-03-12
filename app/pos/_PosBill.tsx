@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ComponentProps } from "react";
 import PosMenuModal from "./_PosMenuModal";
 
 type OrderItem = {
@@ -46,6 +46,7 @@ export default function PosBill({
   const [step, setStep] = useState<"bill" | "pay">("bill");
   const [payMethod, setPayMethod] = useState<"cash" | "qr" | null>(null);
   const [cashReceived, setCashReceived] = useState("");
+  const [discountInput, setDiscountInput] = useState("");
   const [menuModal, setMenuModal] = useState<{ id: number; nameTh: string; nameEn: string | null; price: number } | null>(null);
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -144,7 +145,10 @@ export default function PosBill({
       const res = await fetch(`/api/pos/orders/${orderId}/pay`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          discount: Math.max(0, Number(discountInput) || 0),
+          payMethod: payMethod === "cash" ? "CASH" : payMethod === "qr" ? "QR" : null,
+        }),
       });
       if (res.ok) {
         setToast("ชำระเงินเรียบร้อย");
@@ -157,8 +161,10 @@ export default function PosBill({
 
   const [toast, setToast] = useState("");
   const subtotal = order?.items.reduce((s, i) => s + i.price * i.quantity, 0) ?? 0;
+  const discountNum = Math.max(0, Number(discountInput) || 0);
+  const total = Math.max(0, subtotal - discountNum);
   const cashNum = Number(cashReceived) || 0;
-  const change = cashNum - subtotal;
+  const change = cashNum - total;
 
   if (!order) {
     return (
@@ -252,9 +258,27 @@ export default function PosBill({
               ))}
             </ul>
 
-            <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between text-lg font-semibold">
-              <span>รวม</span>
-              <span>฿{subtotal.toFixed(0)}</span>
+            <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">ยอดรวม</span>
+                <span className="font-medium">฿{subtotal.toFixed(0)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-gray-600">ส่วนลด (บาท)</span>
+                <input
+                  type="number"
+                  min={0}
+                  step="1"
+                  className="w-32 rounded-lg border border-gray-300 px-2 py-1 text-right text-sm"
+                  value={discountInput}
+                  onChange={(e) => setDiscountInput(e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              <div className="flex justify-between text-lg font-semibold">
+                <span>ยอดสุทธิ</span>
+                <span>฿{total.toFixed(0)}</span>
+              </div>
             </div>
 
             {/* QR ให้ลูกค้าสแกนดูรายการ 24 ชม. */}
@@ -289,6 +313,22 @@ export default function PosBill({
               className="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 transition-colors text-white font-medium shadow-sm"
             >
               ชำระเงิน
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  await fetch(`/api/pos/orders/${orderId}/kitchen`, { method: "POST" });
+                  setToast("ส่งเข้าครัวแล้ว");
+                  setTimeout(() => setToast(""), 2000);
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              className="mt-2 w-full py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-orange-50 hover:border-orange-300 transition-colors"
+            >
+              ส่งเข้าครัว (เฉพาะรายการใหม่)
             </button>
           </div>
         </>
@@ -325,7 +365,7 @@ export default function PosBill({
 
       {step === "pay" && payMethod === "cash" && (
         <div className="flex-1 px-3 py-4">
-          <p className="text-sm text-gray-600 mb-2">ยอดที่ต้องชำระ ฿{subtotal.toFixed(0)}</p>
+          <p className="text-sm text-gray-600 mb-2">ยอดที่ต้องชำระ ฿{total.toFixed(0)}</p>
           <input
             type="number"
             min={0}
@@ -405,7 +445,7 @@ export default function PosBill({
           toppings={data.toppings}
           specialRequests={data.specialRequests}
           editingItemId={editingItemId}
-          currentItem={order.items.find((i) => i.id === editingItemId)}
+          currentItem={order.items.find((i) => i.id === editingItemId) as ComponentProps<typeof PosMenuModal>["currentItem"]}
           onAdd={async () => {}}
           onUpdate={updateItem}
           onClose={() => {

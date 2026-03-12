@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { itemId: string } }
+  { params }: { params: Promise<{ itemId: string }> }
 ) {
-  const itemId = Number(params.itemId);
+  const { itemId: itemIdParam } = await params;
+  const itemId = Number(itemIdParam);
   if (!itemId || Number.isNaN(itemId)) {
     return NextResponse.json({ message: "ID ไม่ถูกต้อง" }, { status: 400 });
   }
@@ -63,9 +64,10 @@ export async function PATCH(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { itemId: string } }
+  { params }: { params: Promise<{ itemId: string }> }
 ) {
-  const itemId = Number(params.itemId);
+  const { itemId: itemIdParam } = await params;
+  const itemId = Number(itemIdParam);
   if (!itemId || Number.isNaN(itemId)) {
     return NextResponse.json({ message: "ID ไม่ถูกต้อง" }, { status: 400 });
   }
