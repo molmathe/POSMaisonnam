@@ -89,7 +89,7 @@ export default function AdminReportsPage() {
               </p>
             </div>
             <div className="rounded-xl border border-gray-200 bg-white p-3">
-              <p className="text-xs text-gray-500 mb-1">สแกนจ่าย</p>
+              <p className="text-xs text-gray-500 mb-1">โอนชำระ</p>
               <p className="text-lg font-semibold text-blue-600">
                 ฿{data.summary.sumQr.toFixed(0)}
               </p>
@@ -131,7 +131,7 @@ export default function AdminReportsPage() {
                       {o.payMethod === "CASH"
                         ? "เงินสด"
                         : o.payMethod === "QR"
-                        ? "สแกน"
+                        ? "โอนชำระ"
                         : "-"}
                     </td>
                   </tr>

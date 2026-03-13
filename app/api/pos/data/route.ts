@@ -8,6 +8,7 @@ export async function GET() {
       prisma.customer.findMany({ orderBy: { name: "asc" } }),
       prisma.category.findMany({ orderBy: { id: "asc" } }),
       prisma.menu.findMany({
+        where: { deletedAt: null },
         include: {
           category: true,
           menuToppings: { select: { toppingId: true } },

@@ -105,8 +105,10 @@ export async function DELETE(
   }
 
   try {
-    await prisma.menu.delete({
+    // Soft delete — ออเดอร์เก่ายังอ้างอิงเมนูได้ แค่ซ่อนจากรายการและ POS
+    await prisma.menu.update({
       where: { id },
+      data: { deletedAt: new Date() },
     });
     return NextResponse.json({ success: true });
   } catch (err) {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 
 type Menu = { id: number; nameTh: string; nameEn: string | null; price: number; imageUrl?: string | null };
-type Topping = { id: number; name: string; price: number };
+type Topping = { id: number; name: string; price: number; group?: string | null };
 type SpecialRequest = { id: number; name: string };
 type OrderItem = {
   id: number;
@@ -37,8 +37,9 @@ export default function PosMenuModal({
 }) {
   const allowedToppingIds = (menu as { allowedToppingIds?: number[] }).allowedToppingIds;
   const allowedRequestIds = (menu as { allowedRequestIds?: number[] }).allowedRequestIds;
-  const displayToppings = allowedToppingIds?.length ? toppings.filter((t) => allowedToppingIds.includes(t.id)) : [];
-  const displayRequests = allowedRequestIds?.length ? specialRequests.filter((r) => allowedRequestIds.includes(r.id)) : [];
+  // Only show toppings/requests linked to this menu in admin (empty = show none)
+  const displayToppings = Array.isArray(allowedToppingIds) ? toppings.filter((t) => allowedToppingIds.includes(t.id)) : [];
+  const displayRequests = Array.isArray(allowedRequestIds) ? specialRequests.filter((r) => allowedRequestIds.includes(r.id)) : [];
   const [quantity, setQuantity] = useState(1);
   const [selectedToppings, setSelectedToppings] = useState<{ id: number; name: string; price: number }[]>([]);
   const [selectedRequests, setSelectedRequests] = useState<string[]>([]);
@@ -133,26 +134,58 @@ export default function PosMenuModal({
             </div>
           </div>
 
-          {displayToppings.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Topping</label>
-              <div className="flex flex-wrap gap-2">
-                {displayToppings.map((t) => {
-                  const selected = selectedToppings.some((x) => x.id === t.id);
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => toggleTopping(t)}
-                      className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${selected ? "border-orange-500 bg-orange-500 text-white shadow-sm" : "border-gray-200 text-gray-600 bg-white hover:border-orange-300 hover:bg-orange-50"}`}
-                    >
-                      {t.name} +฿{t.price.toFixed(0)}
-                    </button>
-                  );
-                })}
+          {displayToppings.length > 0 && (() => {
+            const withGroup = displayToppings.filter((t) => t.group);
+            const noGroup = displayToppings.filter((t) => !t.group);
+            const groupNames = [...new Set(withGroup.map((t) => t.group).filter(Boolean))] as string[];
+            return (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Topping</label>
+                <div className="space-y-3">
+                  {noGroup.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {noGroup.map((t) => {
+                        const selected = selectedToppings.some((x) => x.id === t.id);
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => toggleTopping(t)}
+                            className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${selected ? "border-orange-500 bg-orange-500 text-white shadow-sm" : "border-gray-200 text-gray-600 bg-white hover:border-orange-300 hover:bg-orange-50"}`}
+                          >
+                            {t.name} +฿{t.price.toFixed(0)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {groupNames.map((groupName) => {
+                    const items = withGroup.filter((t) => t.group === groupName);
+                    return (
+                      <div key={groupName}>
+                        <div className="text-xs font-medium text-gray-500 mb-1">{groupName}</div>
+                        <div className="flex flex-wrap gap-2">
+                          {items.map((t) => {
+                            const selected = selectedToppings.some((x) => x.id === t.id);
+                            return (
+                              <button
+                                key={t.id}
+                                type="button"
+                                onClick={() => toggleTopping(t)}
+                                className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${selected ? "border-orange-500 bg-orange-500 text-white shadow-sm" : "border-gray-200 text-gray-600 bg-white hover:border-orange-300 hover:bg-orange-50"}`}
+                              >
+                                {t.name} +฿{t.price.toFixed(0)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {displayRequests.length > 0 && (
             <div>

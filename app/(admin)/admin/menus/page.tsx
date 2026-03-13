@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function MenusPage() {
   const [menusRaw, categories, toppings, specialRequests] = await Promise.all([
     prisma.menu.findMany({
+      where: { deletedAt: null },
       include: {
         category: true,
         menuToppings: { select: { toppingId: true } },
@@ -43,6 +44,14 @@ export default async function MenusPage() {
           <p className="text-gray-500 text-sm md:text-base mt-1">
             เพิ่ม ลบ แก้ไขเมนูของร้าน “ไม้ซ่อนน้ำ” พร้อมราคาและหมวดหมู่
           </p>
+          <div className="flex flex-wrap gap-3 mt-2 text-sm">
+            <Link href="/admin/toppings" className="text-orange-600 hover:text-orange-700 font-medium">
+              จัดการ Topping
+            </Link>
+            <Link href="/admin/requests" className="text-orange-600 hover:text-orange-700 font-medium">
+              จัดการคำขอพิเศษ
+            </Link>
+          </div>
         </div>
         <Link
           href="/admin"
@@ -67,10 +76,19 @@ export default async function MenusPage() {
 
         <section className="xl:col-span-2">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 md:p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <h3 className="text-base md:text-lg font-semibold text-gray-800">
                 รายการเมนูทั้งหมด
               </h3>
+              <div className="flex gap-2 text-sm">
+                <Link href="/admin/toppings" className="text-gray-500 hover:text-gray-700">
+                  Topping
+                </Link>
+                <span className="text-gray-300">|</span>
+                <Link href="/admin/requests" className="text-gray-500 hover:text-gray-700">
+                  คำขอพิเศษ
+                </Link>
+              </div>
             </div>
             <MenuList initialMenus={menus} categories={categories} toppings={toppings} specialRequests={specialRequests} />
           </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, type ComponentProps } from "react";
 import PosMenuModal from "./_PosMenuModal";
-import { printKitchenTicket, printReceipt, type ReceiptOrder } from "@/lib/pos-print";
+import { printKitchenTicket, printReceipt, orderDisplayId, type ReceiptOrder } from "@/lib/pos-print";
 
 type OrderItem = {
   id: number;
@@ -24,6 +24,7 @@ type Order = {
   customer: { id: number; name: string } | null;
   items: OrderItem[];
   status: string;
+  servedBy: string | null;
 };
 
 type BillMenu = { id: number; nameTh: string; nameEn: string | null; price: number; categoryId: number; allowedToppingIds?: number[]; allowedRequestIds?: number[] };
@@ -37,11 +38,13 @@ type PosData = {
 export default function PosBill({
   orderId,
   paymentQrUrl,
+  employeeName,
   onClose,
   onLogout,
 }: {
   orderId: number;
   paymentQrUrl: string;
+  employeeName: string | null;
   onClose: () => void;
   onLogout: () => void;
 }) {
@@ -63,8 +66,13 @@ export default function PosBill({
 
   const fetchOrder = useCallback(async () => {
     const res = await fetch(`/api/pos/orders/${orderId}`);
-    if (res.ok) setOrder(await res.json());
-  }, [orderId]);
+    if (res.ok) {
+      setOrder(await res.json());
+    } else if (res.status === 404) {
+      setOrder(null);
+      onClose();
+    }
+  }, [orderId, onClose]);
 
   useEffect(() => {
     fetchOrder();
@@ -152,7 +160,7 @@ export default function PosBill({
       const json = await res.json();
       await fetchOrder();
       if (Array.isArray(json.items) && json.items.length > 0) {
-        printKitchenTicket(json.order, json.items);
+        printKitchenTicket(json.order, json.items, employeeName);
       }
       setToast("ส่งเข้าครัวแล้ว");
       setTimeout(() => setToast(""), 2000);
@@ -170,6 +178,7 @@ export default function PosBill({
         body: JSON.stringify({
           discount: Math.max(0, Number(discountInput) || 0),
           payMethod: payMethod === "cash" ? "CASH" : payMethod === "qr" ? "QR" : null,
+          cashReceived: payMethod === "cash" && cashNum > 0 ? cashNum : undefined,
         }),
       });
       if (res.ok) {
@@ -250,8 +259,11 @@ export default function PosBill({
               </p>
             ) : (
               <ul className="space-y-1">
-                {order.items.map((item) => (
-                  <li key={item.id} className="flex items-center justify-between py-2 border-b border-gray-100">
+                {order.items.map((item) => {
+                  const tops = Array.isArray(item.toppings) ? (item.toppings as { name: string }[]) : [];
+                  const reqs = Array.isArray(item.requests) ? (item.requests as string[]) : [];
+                  return (
+                  <li key={item.id} className="flex items-start justify-between py-2.5 border-b border-gray-100">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-medium text-gray-900">{item.menu.nameTh}</span>
@@ -260,9 +272,11 @@ export default function PosBill({
                           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600 font-medium">ใหม่</span>
                         )}
                       </div>
-                      {item.note && <p className="text-xs text-gray-400 truncate">{item.note}</p>}
+                      {tops.length > 0 && <p className="text-xs text-indigo-500 mt-0.5">+ {tops.map((t) => t.name).join(", ")}</p>}
+                      {reqs.length > 0 && <p className="text-xs text-amber-600 mt-0.5">★ {reqs.join(", ")}</p>}
+                      {item.note && <p className="text-xs text-gray-400 mt-0.5">หมายเหตุ: {item.note}</p>}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
                       <span className="text-gray-700 text-sm">฿{(item.price * item.quantity).toFixed(0)}</span>
                       <button
                         type="button"
@@ -283,7 +297,8 @@ export default function PosBill({
                       </button>
                     </div>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
 
@@ -321,6 +336,18 @@ export default function PosBill({
             {/* Totals card */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2.5">
               <p className="font-semibold text-gray-800">สรุปบิล</p>
+              {order.servedBy && (
+                <div className="flex justify-between text-sm text-gray-500">
+                  <span>รับออเดอร์โดย</span>
+                  <span>{order.servedBy}</span>
+                </div>
+              )}
+              {employeeName && employeeName !== order.servedBy && (
+                <div className="flex justify-between text-sm text-gray-500">
+                  <span>เก็บเงินโดย</span>
+                  <span>{employeeName}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm text-gray-600">
                 <span>รายการทั้งหมด</span>
                 <span>{order.items.length} รายการ</span>
@@ -415,7 +442,7 @@ export default function PosBill({
               onClick={() => setPayMethod("qr")}
               className="py-5 rounded-xl border border-gray-200 bg-white font-medium text-gray-700 hover:border-orange-400 hover:bg-orange-50 hover:text-orange-700 transition-all shadow-sm text-lg"
             >
-              📲 สแกน QR
+              📲 โอนชำระ
             </button>
           </div>
           <button
@@ -487,7 +514,7 @@ export default function PosBill({
             </div>
           )}
           <p className="mt-4 text-xs text-gray-500 text-center">
-            ให้ลูกค้าสแกน QR เพื่อชำระเงิน จากนั้นกดยืนยันด้านล่าง
+            ให้ลูกค้าโอนชำระ จากนั้นกดยืนยันด้านล่าง
           </p>
           <div className="mt-6 flex gap-2 w-full">
             <button
@@ -538,18 +565,27 @@ export default function PosBill({
           <header className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-green-50">
             <div>
               <p className="font-bold text-green-700 text-lg">ชำระเงินเรียบร้อย</p>
-              <p className="text-xs text-gray-500">บิล #{paidOrder.id} · โต๊ะ {paidOrder.table?.name ?? "-"}</p>
+              <p className="text-xs text-gray-500">บิล #{paidOrder.createdAt ? orderDisplayId(paidOrder.createdAt) : paidOrder.id} · โต๊ะ {paidOrder.table?.name ?? "-"}</p>
             </div>
             <span className="text-2xl font-bold text-green-700">฿{paidOrder.totalPrice.toFixed(0)}</span>
           </header>
 
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1">
-            {paidOrder.items.map((item, i) => (
-              <div key={i} className="flex justify-between text-sm py-1.5 border-b border-gray-100 last:border-0">
-                <span className="text-gray-800">{item.menu.nameTh} <span className="text-gray-500">x{item.quantity}</span></span>
-                <span className="text-gray-800">฿{(item.price * item.quantity).toFixed(0)}</span>
+            {paidOrder.items.map((item, i) => {
+              const tops = Array.isArray(item.toppings) ? (item.toppings as { name: string }[]) : [];
+              const reqs = Array.isArray(item.requests) ? (item.requests as string[]) : [];
+              return (
+              <div key={i} className="py-2 border-b border-gray-100 last:border-0">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-800 font-medium">{item.menu.nameTh} <span className="text-gray-500 font-normal">x{item.quantity}</span></span>
+                  <span className="text-gray-800 shrink-0 ml-2">฿{(item.price * item.quantity).toFixed(0)}</span>
+                </div>
+                {tops.length > 0 && <p className="text-xs text-indigo-500 mt-0.5">+ {tops.map((t) => t.name).join(", ")}</p>}
+                {reqs.length > 0 && <p className="text-xs text-amber-600 mt-0.5">★ {reqs.join(", ")}</p>}
+                {item.note && <p className="text-xs text-gray-400 mt-0.5">หมายเหตุ: {item.note}</p>}
               </div>
-            ))}
+              );
+            })}
             <div className="pt-3 space-y-1">
               <div className="flex justify-between text-sm text-gray-500">
                 <span>ราคารวม</span>
@@ -567,15 +603,33 @@ export default function PosBill({
               </div>
               <div className="flex justify-between text-sm text-gray-500">
                 <span>วิธีชำระ</span>
-                <span>{paidOrder.payMethod === "CASH" ? "เงินสด" : paidOrder.payMethod === "QR" ? "สแกน QR" : "-"}</span>
+                <span>{paidOrder.payMethod === "CASH" ? "เงินสด" : paidOrder.payMethod === "QR" ? "โอนชำระ" : "-"}</span>
               </div>
+              {paidOrder.payMethod === "CASH" && cashNum > 0 && (
+                <>
+                  <div className="flex justify-between text-sm text-gray-500">
+                    <span>รับเงินมา</span>
+                    <span>฿{cashNum.toFixed(0)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-semibold text-blue-600">
+                    <span>เงินทอน</span>
+                    <span>฿{(cashNum - paidOrder.totalPrice).toFixed(0)}</span>
+                  </div>
+                </>
+              )}
+              {paidOrder.servedBy && (
+                <div className="flex justify-between text-sm text-gray-500">
+                  <span>พนักงาน</span>
+                  <span>{paidOrder.servedBy}</span>
+                </div>
+              )}
             </div>
           </div>
 
           <div className="p-4 border-t border-gray-200 flex gap-3">
             <button
               type="button"
-              onClick={() => printReceipt(paidOrder)}
+              onClick={() => printReceipt({ ...paidOrder, cashReceived: paidOrder.payMethod === "CASH" && cashNum > 0 ? cashNum : undefined })}
               className="flex-1 py-3 rounded-xl border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition-colors"
             >
               พิมพ์ใบเสร็จ

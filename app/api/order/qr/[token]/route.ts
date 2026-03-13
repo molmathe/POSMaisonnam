@@ -26,9 +26,6 @@ export async function GET(
   if (order.qrExpires && new Date() > order.qrExpires) {
     return NextResponse.json({ message: "รหัสหมดอายุแล้ว" }, { status: 410 });
   }
-  if (order.status !== "PENDING") {
-    return NextResponse.json({ message: "รายการนี้ชำระเงินแล้ว" }, { status: 400 });
-  }
 
   const items = order.items.map((i) => ({
     name: i.menu.nameTh,

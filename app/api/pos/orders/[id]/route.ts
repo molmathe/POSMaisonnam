@@ -72,3 +72,26 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: idParam } = await params;
+  const id = Number(idParam);
+  if (!id || Number.isNaN(id)) {
+    return NextResponse.json({ message: "ID ไม่ถูกต้อง" }, { status: 400 });
+  }
+  const order = await prisma.order.findUnique({ where: { id } });
+  if (!order) {
+    return NextResponse.json({ message: "ไม่พบออเดอร์" }, { status: 404 });
+  }
+  if (order.status !== "PENDING") {
+    return NextResponse.json(
+      { message: "ลบได้เฉพาะออเดอร์ที่ยังรอชำระ" },
+      { status: 400 }
+    );
+  }
+  await prisma.order.delete({ where: { id } });
+  return NextResponse.json({ deleted: true });
+}

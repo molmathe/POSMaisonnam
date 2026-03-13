@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const menusRaw = await prisma.menu.findMany({
+    where: { deletedAt: null },
     include: {
       category: true,
       menuToppings: { select: { toppingId: true } },

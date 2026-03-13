@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const price = Number(body.price);
+    const group = typeof body.group === "string" ? body.group.trim() || null : null;
 
     if (!name || Number.isNaN(price) || price < 0) {
       return NextResponse.json(
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
     }
 
     const topping = await prisma.topping.create({
-      data: { name, price },
+      data: { name, price, group },
     });
 
     return NextResponse.json(topping, { status: 201 });

@@ -45,6 +45,14 @@ export async function POST(
     );
 
     const totalPrice = Math.max(0, subtotal - discount);
+    const cashReceived =
+      payMethod === "CASH" && Number.isFinite(Number(body.cashReceived))
+        ? Number(body.cashReceived)
+        : null;
+    const changeAmount =
+      payMethod === "CASH" && cashReceived != null
+        ? Math.max(0, cashReceived - totalPrice)
+        : null;
 
     await prisma.order.update({
       where: { id },
@@ -54,6 +62,8 @@ export async function POST(
         discount,
         payMethod,
         paidAt: new Date(),
+        cashReceived: cashReceived ?? undefined,
+        changeAmount: changeAmount ?? undefined,
       },
     });
 

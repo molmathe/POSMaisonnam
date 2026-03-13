@@ -107,7 +107,7 @@ export default function PosReceiptsPage() {
             <span className="mr-4">รวมสุทธิ: ฿{data.summary.sumTotal.toFixed(0)}</span>
             <span className="mr-4">ส่วนลดรวม: ฿{data.summary.sumDiscount.toFixed(0)}</span>
             <span className="mr-4">เงินสด: ฿{data.summary.sumCash.toFixed(0)}</span>
-            <span>สแกนจ่าย: ฿{data.summary.sumQr.toFixed(0)}</span>
+            <span>โอนชำระ: ฿{data.summary.sumQr.toFixed(0)}</span>
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -139,7 +139,7 @@ export default function PosReceiptsPage() {
                       )}
                     </td>
                     <td className="px-3 py-2 text-right">
-                      {r.payMethod === "CASH" ? "เงินสด" : r.payMethod === "QR" ? "สแกน" : "-"}
+                      {r.payMethod === "CASH" ? "เงินสด" : r.payMethod === "QR" ? "โอนชำระ" : "-"}
                     </td>
                     <td className="px-3 py-2 text-right space-x-2">
                       <button
@@ -205,7 +205,7 @@ export default function PosReceiptsPage() {
                 {selected.payMethod === "CASH"
                   ? "เงินสด"
                   : selected.payMethod === "QR"
-                  ? "สแกน"
+                  ? "โอนชำระ"
                   : "-"}
               </p>
             </div>

@@ -42,11 +42,13 @@ type PosData = {
 
 export default function PosMain({
   isOwner,
+  employeeName,
   onOpenBill,
   onOpenAttendance,
   onLogout,
 }: {
   isOwner: boolean;
+  employeeName: string | null;
   onOpenBill: (tableId: number, orderId: number) => void;
   onOpenAttendance: () => void;
   onLogout: () => void;
@@ -62,6 +64,8 @@ export default function PosMain({
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState("");
   const [showMoveTable, setShowMoveTable] = useState(false);
+  const [showTablePicker, setShowTablePicker] = useState(false);
+  const [showCustomerPicker, setShowCustomerPicker] = useState(false);
 
   const fetchData = useCallback(async () => {
     const res = await fetch("/api/pos/data");
@@ -95,7 +99,7 @@ export default function PosMain({
       const res = await fetch("/api/pos/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tableId, customerId }),
+        body: JSON.stringify({ tableId, customerId, servedBy: employeeName }),
       });
       if (res.ok) {
         const order = await res.json();
@@ -112,7 +116,7 @@ export default function PosMain({
       const res = await fetch("/api/pos/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tableId, customerId }),
+        body: JSON.stringify({ tableId, customerId, servedBy: employeeName }),
       });
       if (!res.ok) return;
       const newOrder = await res.json();
@@ -219,7 +223,7 @@ export default function PosMain({
       const json = await res.json();
       await fetchOrder();
       if (Array.isArray(json.items) && json.items.length > 0) {
-        printKitchenTicket(json.order, json.items);
+        printKitchenTicket(json.order, json.items, employeeName);
       }
       setToast("ส่งเข้าครัวแล้ว");
       setTimeout(() => setToast(""), 2000);
@@ -237,92 +241,84 @@ export default function PosMain({
   }
 
   return (
-    <div className="min-h-screen flex flex-col pb-24 bg-gray-50">
+    <div className="min-h-screen flex flex-col pb-40 bg-gray-50">
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-2 flex-wrap">
-        <span className="font-bold text-gray-900 text-sm md:text-base">ไม้ซ่อนน้ำ POS</span>
-        <div className="relative flex-1 min-w-[100px] max-w-[140px]">
-          <select
-            className="w-full border border-gray-300 rounded-lg py-2 px-2 text-sm"
-            value={tableId ?? ""}
-            onChange={(e) => {
-              const v = e.target.value ? Number(e.target.value) : null;
-              setTableId(v);
-              setCurrentOrder(null);
-              setShowMoveTable(false);
-            }}
-          >
-            <option value="">เลือกโต๊ะ</option>
-            {data.tables.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
-          {currentOrder && (
+      <header className="sticky top-0 z-20 bg-white border-b border-gray-200">
+        {/* Row 1: brand + actions */}
+        <div className="px-4 h-10 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="font-semibold text-gray-900 text-[13px] shrink-0">ไม้ซ่อนน้ำ</span>
+            {employeeName && (
+              <>
+                <span className="text-gray-300 text-xs">·</span>
+                <span className="text-[12px] text-orange-500 font-medium truncate">{employeeName}</span>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            {isOwner && (
+              <button
+                type="button"
+                onClick={onOpenAttendance}
+                className="text-[12px] font-semibold text-orange-500 active:opacity-60"
+              >
+                เช็คชื่อ
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => setShowMoveTable((s) => !s)}
-              className="absolute right-8 top-1/2 -translate-y-1/2 text-xs text-orange-500 hover:text-orange-700 font-medium"
-              title="ย้ายโต๊ะ"
+              onClick={onLogout}
+              className="text-[12px] font-semibold text-red-400 active:opacity-60"
             >
-              ย้าย
+              ออกจากระบบ
             </button>
-          )}
-        </div>
-        {showMoveTable && currentOrder && (
-          <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-gray-200 rounded-lg shadow-lg p-2 max-h-48 overflow-y-auto">
-            <p className="text-xs text-gray-500 px-2 py-1">ย้ายบิลไปโต๊ะ</p>
-            {data.tables.filter((t) => t.id !== currentOrder.tableId).map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={async () => {
-                  await updateOrderMeta({ tableId: t.id });
-                  setTableId(t.id);
-                  setShowMoveTable(false);
-                  setToast("ย้ายโต๊ะแล้ว");
-                  setTimeout(() => setToast(""), 2000);
-                }}
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-orange-50 hover:text-orange-600 text-sm transition-colors"
-              >
-                {t.name}
-              </button>
-            ))}
           </div>
-        )}
-        <select
-          className="flex-1 min-w-[100px] max-w-[140px] border border-gray-300 rounded-lg py-2 px-2 text-sm"
-          value={customerId ?? ""}
-          onChange={(e) => {
-            const v = e.target.value ? Number(e.target.value) : null;
-            setCustomerId(v);
-            if (currentOrder) updateOrderMeta({ customerId: v });
-          }}
-        >
-          <option value="">ลูกค้า (ไม่ระบุ)</option>
-          {data.customers.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-        {isOwner && (
+        </div>
+
+        {/* Row 2: table + move btn + customer */}
+        <div className="px-5 pb-2 flex items-center gap-2">
+          {/* Table picker button */}
           <button
             type="button"
-            onClick={onOpenAttendance}
-            className="px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600 border border-orange-100 text-sm font-medium hover:bg-orange-100 transition-colors"
+            onClick={() => setShowTablePicker(true)}
+            className="flex-1 h-7 border border-gray-200 rounded-lg text-[11px] bg-gray-50 font-medium flex items-center justify-center gap-1 transition-colors active:bg-gray-100"
           >
-            เช็คชื่อ
+            <span className={tableId ? "text-gray-800" : "text-gray-400"}>
+              {tableId ? (data.tables.find((t) => t.id === tableId)?.name ?? "เลือกโต๊ะ") : "เลือกโต๊ะ"}
+            </span>
+            <svg className="w-2.5 h-2.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
           </button>
-        )}
-        <button
-          type="button"
-          onClick={onLogout}
-          className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-100 text-sm font-medium hover:bg-red-100 transition-colors"
-        >
-          ออก
-        </button>
+
+          {/* Move table button */}
+          <button
+            type="button"
+            disabled={!currentOrder}
+            onClick={() => setShowMoveTable(true)}
+            className={`h-7 w-9 shrink-0 rounded-lg text-[10px] font-semibold border transition-colors ${
+              currentOrder
+                ? "bg-orange-50 text-orange-500 border-orange-200 active:bg-orange-100"
+                : "bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed"
+            }`}
+          >
+            ย้าย
+          </button>
+
+          {/* Customer picker button */}
+          <button
+            type="button"
+            onClick={() => setShowCustomerPicker(true)}
+            className="flex-1 h-7 border border-gray-200 rounded-lg text-[11px] bg-gray-50 flex items-center justify-center gap-1 transition-colors active:bg-gray-100"
+          >
+            <span className={customerId ? "text-gray-700" : "text-gray-400"}>
+              {customerId ? (data.customers.find((c) => c.id === customerId)?.name ?? "เลือกลูกค้า") : "เลือกลูกค้า"}
+            </span>
+            <svg className="w-2.5 h-2.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+        </div>
       </header>
 
       {/* Search + Categories */}
-      <div className="sticky top-[52px] z-10 bg-white border-b border-gray-100 px-3 py-2 space-y-2">
+      <div className="sticky top-[72px] z-10 bg-white border-b border-gray-100 px-3 py-2 space-y-2">
         <input
           type="search"
           placeholder="ค้นหาเมนู..."
@@ -384,8 +380,8 @@ export default function PosMain({
         </div>
       </main>
 
-      {/* Cart bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-3">
+      {/* Cart bar — sits above the bottom tab bar (bottom-16) */}
+      <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-3">
         <div className="flex items-center justify-between gap-3 mb-2">
           <span className="text-sm text-gray-600">
             {currentOrder
@@ -446,8 +442,103 @@ export default function PosMain({
         />
       )}
 
+      {/* Table picker modal */}
+      {showTablePicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowTablePicker(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-xs overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <p className="font-semibold text-gray-800 text-sm">เลือกโต๊ะ</p>
+              <button type="button" onClick={() => setShowTablePicker(false)} className="text-gray-400 text-lg leading-none">✕</button>
+            </div>
+            <div className="max-h-64 overflow-y-auto py-1">
+              <button
+                type="button"
+                onClick={() => { setTableId(null); setCurrentOrder(null); setShowTablePicker(false); }}
+                className={`w-full text-left px-4 py-3 text-sm transition-colors ${!tableId ? "text-orange-500 font-semibold bg-orange-50" : "text-gray-400 hover:bg-gray-50"}`}
+              >
+                — ไม่เลือกโต๊ะ
+              </button>
+              {data.tables.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => { setTableId(t.id); setCurrentOrder(null); setShowMoveTable(false); setShowTablePicker(false); }}
+                  className={`w-full text-left px-4 py-3 text-sm transition-colors ${tableId === t.id ? "text-orange-500 font-semibold bg-orange-50" : "text-gray-700 hover:bg-gray-50"}`}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customer picker modal */}
+      {showCustomerPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowCustomerPicker(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-xs overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <p className="font-semibold text-gray-800 text-sm">เลือกลูกค้า</p>
+              <button type="button" onClick={() => setShowCustomerPicker(false)} className="text-gray-400 text-lg leading-none">✕</button>
+            </div>
+            <div className="max-h-64 overflow-y-auto py-1">
+              <button
+                type="button"
+                onClick={() => { setCustomerId(null); if (currentOrder) updateOrderMeta({ customerId: null }); setShowCustomerPicker(false); }}
+                className={`w-full text-left px-4 py-3 text-sm transition-colors ${!customerId ? "text-orange-500 font-semibold bg-orange-50" : "text-gray-400 hover:bg-gray-50"}`}
+              >
+                — ไม่เลือกลูกค้า
+              </button>
+              {data.customers.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => { setCustomerId(c.id); if (currentOrder) updateOrderMeta({ customerId: c.id }); setShowCustomerPicker(false); }}
+                  className={`w-full text-left px-4 py-3 text-sm transition-colors ${customerId === c.id ? "text-orange-500 font-semibold bg-orange-50" : "text-gray-700 hover:bg-gray-50"}`}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Move table modal */}
+      {showMoveTable && currentOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowMoveTable(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-xs overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <p className="font-semibold text-gray-800 text-sm">ย้ายบิลไปโต๊ะ</p>
+              <button type="button" onClick={() => setShowMoveTable(false)} className="text-gray-400 text-lg leading-none">✕</button>
+            </div>
+            <div className="max-h-64 overflow-y-auto py-1">
+              {data.tables.filter((t) => t.id !== currentOrder.tableId).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={async () => {
+                    await updateOrderMeta({ tableId: t.id });
+                    setTableId(t.id);
+                    setShowMoveTable(false);
+                    setToast("ย้ายโต๊ะแล้ว");
+                    setTimeout(() => setToast(""), 2000);
+                  }}
+                  className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-xl bg-green-600 text-white text-sm shadow-lg font-medium tracking-wide">
+        <div className="fixed bottom-40 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-xl bg-green-600 text-white text-sm shadow-lg font-medium tracking-wide">
           {toast}
         </div>
       )}

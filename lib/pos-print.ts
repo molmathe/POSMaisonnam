@@ -1,5 +1,16 @@
 // Browser-only print utilities — call only in client components
 
+/** Returns human-readable order ID: DDMMYYHHMM (e.g. 1303261523) */
+export function orderDisplayId(createdAt: string | Date): string {
+  const d = new Date(createdAt);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yy = String(d.getFullYear()).slice(-2);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${dd}${mm}${yy}${hh}${min}`;
+}
+
 type KitchenItem = {
   quantity: number;
   note: string | null;
@@ -13,7 +24,7 @@ type KitchenOrder = {
   customer?: { name: string } | null;
 };
 
-export function printKitchenTicket(order: KitchenOrder, items: KitchenItem[]) {
+export function printKitchenTicket(order: KitchenOrder, items: KitchenItem[], servedBy?: string | null) {
   const win = window.open("", "_blank", "width=360,height=600");
   if (!win) return;
   const tableName = order.table?.name ?? "-";
@@ -46,6 +57,7 @@ export function printKitchenTicket(order: KitchenOrder, items: KitchenItem[]) {
 <h2>ใบสั่งครัว</h2>
 <div class="meta">โต๊ะ: <strong>${tableName}</strong>${order.customer?.name ? ` · ${order.customer.name}` : ""}</div>
 <div class="meta">เวลา: ${now}</div>
+${servedBy ? `<div class="meta">พนักงาน: ${servedBy}</div>` : ""}
 <hr>
 ${rows}
 <script>window.onload=()=>{window.print();setTimeout(()=>window.close(),500)}<\/script>
@@ -56,31 +68,41 @@ ${rows}
 
 export type ReceiptOrder = {
   id: number;
+  createdAt?: string | null;
   totalPrice: number;
   discount: number;
   payMethod: "CASH" | "QR" | null;
   paidAt: string | null;
   table: { name: string } | null;
   customer: { name: string } | null;
-  items: { quantity: number; price: number; note: string | null; menu: { nameTh: string } }[];
+  servedBy?: string | null;
+  cashReceived?: number;
+  items: { quantity: number; price: number; note: string | null; toppings?: unknown; requests?: unknown; menu: { nameTh: string } }[];
 };
 
 export function printReceipt(order: ReceiptOrder) {
   const win = window.open("", "_blank", "width=360,height=700");
   if (!win) return;
+  const displayId = order.createdAt ? orderDisplayId(order.createdAt) : String(order.id);
   const subtotal = order.items.reduce((s, i) => s + i.price * i.quantity, 0);
   const paidAt = order.paidAt
     ? new Date(order.paidAt).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" })
     : new Date().toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" });
-  const payTh = order.payMethod === "CASH" ? "เงินสด" : order.payMethod === "QR" ? "สแกน QR" : "-";
+  const payTh = order.payMethod === "CASH" ? "เงินสด" : order.payMethod === "QR" ? "โอนชำระ" : "-";
   const rows = order.items
-    .map(
-      (i) =>
-        `<div class="row"><span>${i.menu.nameTh} x${i.quantity}</span><span>฿${(i.price * i.quantity).toFixed(0)}</span></div>${i.note ? `<div class="note">หมายเหตุ: ${i.note}</div>` : ""}`
-    )
+    .map((i) => {
+      const tops = Array.isArray(i.toppings) && i.toppings.length
+        ? `<div class="note">+ ${(i.toppings as { name?: string }[]).map((t) => t.name ?? t).join(", ")}</div>`
+        : "";
+      const reqs = Array.isArray(i.requests) && i.requests.length
+        ? `<div class="note">★ ${(i.requests as string[]).join(", ")}</div>`
+        : "";
+      const note = i.note ? `<div class="note">หมายเหตุ: ${i.note}</div>` : "";
+      return `<div class="row"><span>${i.menu.nameTh} x${i.quantity}</span><span>฿${(i.price * i.quantity).toFixed(0)}</span></div>${tops}${reqs}${note}`;
+    })
     .join("");
 
-  const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>ใบเสร็จ #${order.id}</title>
+  const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>ใบเสร็จ #${displayId}</title>
 <style>
   body{font-family:'TH Sarabun New',Sarabun,sans-serif;font-size:15px;padding:10px;margin:0;max-width:300px}
   h2{font-size:20px;margin:0;text-align:center}
@@ -94,9 +116,10 @@ export function printReceipt(order: ReceiptOrder) {
 <h2>ไม้ซ่อนน้ำ</h2>
 <p class="center meta">ใบเสร็จรับเงิน</p>
 <hr>
-<div class="meta">บิล #${order.id} · โต๊ะ ${order.table?.name ?? "-"}</div>
+<div class="meta">บิล #${displayId} · โต๊ะ ${order.table?.name ?? "-"}</div>
 ${order.customer?.name ? `<div class="meta">ลูกค้า: ${order.customer.name}</div>` : ""}
 <div class="meta">เวลา: ${paidAt}</div>
+${order.servedBy ? `<div class="meta">พนักงาน: ${order.servedBy}</div>` : ""}
 <hr>
 ${rows}
 <hr>
@@ -104,6 +127,7 @@ ${rows}
 ${order.discount > 0 ? `<div class="row"><span>ส่วนลด</span><span>-฿${order.discount.toFixed(0)}</span></div>` : ""}
 <div class="row total"><span>ยอดสุทธิ</span><span>฿${order.totalPrice.toFixed(0)}</span></div>
 <div class="row meta"><span>วิธีชำระ</span><span>${payTh}</span></div>
+${order.cashReceived && order.cashReceived > 0 ? `<div class="row meta"><span>รับเงินมา</span><span>฿${order.cashReceived.toFixed(0)}</span></div><div class="row" style="font-weight:bold;color:#1d4ed8"><span>เงินทอน</span><span>฿${(order.cashReceived - order.totalPrice).toFixed(0)}</span></div>` : ""}
 <hr>
 <p class="center meta">ขอบคุณที่ใช้บริการ</p>
 <script>window.onload=()=>{window.print();setTimeout(()=>window.close(),500)}<\/script>

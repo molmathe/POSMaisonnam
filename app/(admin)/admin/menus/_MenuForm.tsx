@@ -3,7 +3,7 @@
 import { useState, FormEvent, DragEvent, ChangeEvent } from "react";
 
 type Category = { id: number; name: string };
-type Topping = { id: number; name: string; price: number };
+type Topping = { id: number; name: string; price: number; group?: string | null };
 type SpecialRequest = { id: number; name: string };
 
 interface Props {
@@ -24,6 +24,39 @@ export default function MenuForm({ categories, toppings, specialRequests }: Prop
   const [dragOver, setDragOver] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const DRAG_TYPE_TOPPING = "application/x-menu-topping";
+  const DRAG_TYPE_REQUEST = "application/x-menu-request";
+
+  function handleToppingDragStart(e: DragEvent<HTMLDivElement>, id: number) {
+    e.dataTransfer.setData(DRAG_TYPE_TOPPING, String(id));
+    e.dataTransfer.effectAllowed = "copy";
+  }
+  function handleRequestDragStart(e: DragEvent<HTMLDivElement>, id: number) {
+    e.dataTransfer.setData(DRAG_TYPE_REQUEST, String(id));
+    e.dataTransfer.effectAllowed = "copy";
+  }
+  function handleToppingDropZoneDragOver(e: DragEvent<HTMLDivElement>) {
+    if (e.dataTransfer.types.includes(DRAG_TYPE_TOPPING)) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    }
+  }
+  function handleToppingDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const id = e.dataTransfer.getData(DRAG_TYPE_TOPPING);
+    if (id && !selectedToppingIds.includes(Number(id))) setSelectedToppingIds((prev) => [...prev, Number(id)]);
+  }
+  function handleRequestDropZoneDragOver(e: DragEvent<HTMLDivElement>) {
+    if (e.dataTransfer.types.includes(DRAG_TYPE_REQUEST)) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    }
+  }
+  function handleRequestDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const id = e.dataTransfer.getData(DRAG_TYPE_REQUEST);
+    if (id && !selectedRequestIds.includes(Number(id))) setSelectedRequestIds((prev) => [...prev, Number(id)]);
+  }
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -53,9 +86,7 @@ export default function MenuForm({ categories, toppings, specialRequests }: Prop
 
   async function uploadImageIfNeeded() {
     if (!file) {
-      return imageUrl && !imageUrl.startsWith("blob:")
-        ? imageUrl
-        : imageUrl ?? null;
+      return null;
     }
 
     const formData = new FormData();
@@ -193,27 +224,42 @@ export default function MenuForm({ categories, toppings, specialRequests }: Prop
       {toppings.length > 0 && (
         <div className="space-y-1">
           <label className="block text-xs md:text-sm font-medium text-gray-700">
-            Topping ที่แสดงบน POS <span className="text-gray-400">(ไม่เลือก = ไม่แสดง)</span>
+            Topping ที่แสดงบน POS <span className="text-gray-400">(ลากการ์ดมาวาง หรือคลิกแท็กเพื่อลบ)</span>
           </label>
-          <div className="flex flex-wrap gap-2">
-            {toppings.map((t) => {
-              const checked = selectedToppingIds.includes(t.id);
-              return (
-                <label key={t.id} className="inline-flex items-center gap-1.5 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() =>
-                      setSelectedToppingIds((prev) =>
-                        checked ? prev.filter((id) => id !== t.id) : [...prev, t.id]
-                      )
-                    }
-                    className="rounded border-gray-300"
-                  />
-                  <span>{t.name} (+฿{t.price.toFixed(0)})</span>
-                </label>
-              );
-            })}
+          <div
+            onDragOver={handleToppingDropZoneDragOver}
+            onDrop={handleToppingDrop}
+            onDragLeave={(e) => e.preventDefault()}
+            className="min-h-[48px] rounded-lg border-2 border-dashed border-gray-200 bg-gray-50/50 p-2 flex flex-wrap gap-2"
+          >
+            {selectedToppingIds.length === 0 ? (
+              <span className="text-xs text-gray-400 self-center">วาง Topping ที่นี่</span>
+            ) : (
+              toppings
+                .filter((t) => selectedToppingIds.includes(t.id))
+                .map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setSelectedToppingIds((prev) => prev.filter((id) => id !== t.id))}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-100 text-orange-800 text-sm font-medium hover:bg-orange-200 border border-orange-200"
+                  >
+                    {t.name} +฿{t.price.toFixed(0)} ✕
+                  </button>
+                ))
+            )}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {toppings.map((t) => (
+              <div
+                key={t.id}
+                draggable
+                onDragStart={(e) => handleToppingDragStart(e, t.id)}
+                className="px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm cursor-grab active:cursor-grabbing shadow-sm hover:border-orange-300 hover:shadow"
+              >
+                {t.name} +฿{t.price.toFixed(0)}
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -221,27 +267,42 @@ export default function MenuForm({ categories, toppings, specialRequests }: Prop
       {specialRequests.length > 0 && (
         <div className="space-y-1">
           <label className="block text-xs md:text-sm font-medium text-gray-700">
-            คำขอพิเศษที่แสดงบน POS <span className="text-gray-400">(ไม่เลือก = ไม่แสดง)</span>
+            คำขอพิเศษที่แสดงบน POS <span className="text-gray-400">(ลากการ์ดมาวาง หรือคลิกแท็กเพื่อลบ)</span>
           </label>
-          <div className="flex flex-wrap gap-2">
-            {specialRequests.map((r) => {
-              const checked = selectedRequestIds.includes(r.id);
-              return (
-                <label key={r.id} className="inline-flex items-center gap-1.5 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() =>
-                      setSelectedRequestIds((prev) =>
-                        checked ? prev.filter((id) => id !== r.id) : [...prev, r.id]
-                      )
-                    }
-                    className="rounded border-gray-300"
-                  />
-                  <span>{r.name}</span>
-                </label>
-              );
-            })}
+          <div
+            onDragOver={handleRequestDropZoneDragOver}
+            onDrop={handleRequestDrop}
+            onDragLeave={(e) => e.preventDefault()}
+            className="min-h-[48px] rounded-lg border-2 border-dashed border-gray-200 bg-gray-50/50 p-2 flex flex-wrap gap-2"
+          >
+            {selectedRequestIds.length === 0 ? (
+              <span className="text-xs text-gray-400 self-center">วางคำขอพิเศษที่นี่</span>
+            ) : (
+              specialRequests
+                .filter((r) => selectedRequestIds.includes(r.id))
+                .map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setSelectedRequestIds((prev) => prev.filter((id) => id !== r.id))}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-100 text-orange-800 text-sm font-medium hover:bg-orange-200 border border-orange-200"
+                  >
+                    {r.name} ✕
+                  </button>
+                ))
+            )}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {specialRequests.map((r) => (
+              <div
+                key={r.id}
+                draggable
+                onDragStart={(e) => handleRequestDragStart(e, r.id)}
+                className="px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm cursor-grab active:cursor-grabbing shadow-sm hover:border-orange-300 hover:shadow"
+              >
+                {r.name}
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -277,21 +338,8 @@ export default function MenuForm({ categories, toppings, specialRequests }: Prop
           <p className="mb-1">
             ลากรูปเมนูมาวางที่นี่ หรือกดเพื่อเลือกไฟล์จากเครื่อง
           </p>
-          <p className="text-[11px] text-gray-400">
-            รองรับ JPG, PNG หรือใส่ URL ด้านล่าง
-          </p>
+          <p className="text-[11px] text-gray-400">รองรับ JPG, PNG</p>
         </div>
-        <input
-          type="url"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs mt-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-          placeholder="หรือใส่ URL รูปภาพ (เช่น /uploads/xxx.jpg)"
-          value={imageUrl && !imageUrl.startsWith("blob:") ? imageUrl : ""}
-          onChange={(e) => {
-            const v = e.target.value.trim() || null;
-            setImageUrl(v);
-            if (v) setFile(null);
-          }}
-        />
         {imageUrl && (
           <div className="mt-2">
             <p className="text-xs text-gray-500 mb-1">ตัวอย่างรูปเมนู</p>

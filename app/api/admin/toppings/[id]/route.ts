@@ -15,6 +15,7 @@ export async function PUT(
     const body = await req.json();
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const price = Number(body.price);
+    const group = typeof body.group === "string" ? body.group.trim() || null : null;
 
     if (!name || Number.isNaN(price) || price < 0) {
       return NextResponse.json(
@@ -25,7 +26,7 @@ export async function PUT(
 
     const updated = await prisma.topping.update({
       where: { id },
-      data: { name, price },
+      data: { name, price, group },
     });
 
     return NextResponse.json(updated);

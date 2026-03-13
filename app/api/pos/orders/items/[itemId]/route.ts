@@ -30,8 +30,9 @@ export async function PATCH(
     const requests = body.requests !== undefined ? (Array.isArray(body.requests) ? body.requests : []) : (item.requests as any[]);
 
     if (quantity < 1) {
+      const orderId = item.orderId;
       await prisma.orderItem.delete({ where: { id: itemId } });
-      await updateOrderTotal(item.orderId);
+      await deleteOrderIfEmpty(orderId);
       return NextResponse.json({ deleted: true });
     }
 
@@ -75,12 +76,20 @@ export async function DELETE(
   try {
     const item = await prisma.orderItem.findUnique({
       where: { id: itemId },
+      include: { order: true },
     });
     if (!item) {
       return NextResponse.json({ message: "ไม่พบรายการ" }, { status: 404 });
     }
+    if (item.order.status !== "PENDING") {
+      return NextResponse.json(
+        { message: "ออเดอร์ปิดแล้ว ไม่สามารถลบรายการได้" },
+        { status: 400 }
+      );
+    }
+    const orderId = item.orderId;
     await prisma.orderItem.delete({ where: { id: itemId } });
-    await updateOrderTotal(item.orderId);
+    await deleteOrderIfEmpty(orderId);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -98,4 +107,13 @@ async function updateOrderTotal(orderId: number) {
     where: { id: orderId },
     data: { totalPrice },
   });
+}
+
+async function deleteOrderIfEmpty(orderId: number) {
+  const count = await prisma.orderItem.count({ where: { orderId } });
+  if (count === 0) {
+    await prisma.order.delete({ where: { id: orderId } });
+  } else {
+    await updateOrderTotal(orderId);
+  }
 }
