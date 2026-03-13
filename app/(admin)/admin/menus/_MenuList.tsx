@@ -207,7 +207,6 @@ export default function MenuList({ initialMenus, categories, toppings, specialRe
                       <input
                         type="file"
                         accept="image/*"
-                        capture="environment"
                         className="hidden"
                         onChange={async (e) => {
                           const f = e.target.files?.[0];
@@ -306,26 +305,40 @@ export default function MenuList({ initialMenus, categories, toppings, specialRe
                   )}
                 </>
               ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm md:text-base font-medium text-gray-900">
-                      {menu.nameTh}
-                    </span>
-                    {menu.nameEn && (
-                      <span className="text-xs text-gray-500">
-                        ({menu.nameEn})
+                <div className="flex items-center gap-3">
+                  {menu.imageUrl ? (
+                    <img
+                      src={menu.imageUrl}
+                      alt={menu.nameTh}
+                      className="h-12 w-12 rounded-lg object-cover border border-gray-200 flex-shrink-0 bg-gray-50"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  ) : (
+                    <div className="h-12 w-12 rounded-lg border border-gray-200 bg-gray-100 flex-shrink-0 flex items-center justify-center text-gray-400 text-lg">
+                      🍽
+                    </div>
+                  )}
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm md:text-base font-medium text-gray-900">
+                        {menu.nameTh}
                       </span>
-                    )}
+                      {menu.nameEn && (
+                        <span className="text-xs text-gray-500">
+                          ({menu.nameEn})
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                      <span>฿{menu.price.toFixed(0)}</span>
+                      {menu.category && (
+                        <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                          {menu.category.name}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                    <span>ราคา: ฿{menu.price.toFixed(0)}</span>
-                    {menu.category && (
-                      <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
-                        {menu.category.name}
-                      </span>
-                    )}
-                  </div>
-                </>
+                </div>
               )}
             </div>
 

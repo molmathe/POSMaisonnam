@@ -25,8 +25,10 @@ type Order = {
   status: string;
 };
 
+type BillMenu = { id: number; nameTh: string; nameEn: string | null; price: number; categoryId: number; allowedToppingIds?: number[]; allowedRequestIds?: number[] };
+
 type PosData = {
-  menus: { id: number; nameTh: string; nameEn: string | null; price: number; categoryId: number }[];
+  menus: BillMenu[];
   toppings: { id: number; name: string; price: number }[];
   specialRequests: { id: number; name: string }[];
 };
@@ -48,7 +50,7 @@ export default function PosBill({
   const [payMethod, setPayMethod] = useState<"cash" | "qr" | null>(null);
   const [cashReceived, setCashReceived] = useState("");
   const [discountInput, setDiscountInput] = useState("");
-  const [menuModal, setMenuModal] = useState<{ id: number; nameTh: string; nameEn: string | null; price: number } | null>(null);
+  const [menuModal, setMenuModal] = useState<BillMenu | null>(null);
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [qrUrl, setQrUrl] = useState<string | null>(null);

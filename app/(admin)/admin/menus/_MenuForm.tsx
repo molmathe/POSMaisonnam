@@ -271,7 +271,6 @@ export default function MenuForm({ categories, toppings, specialRequests }: Prop
             id="menu-image-input"
             type="file"
             accept="image/*"
-            capture="environment"
             className="hidden"
             onChange={handleFileChange}
           />

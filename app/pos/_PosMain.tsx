@@ -6,7 +6,7 @@ import PosMenuModal from "./_PosMenuModal";
 type Table = { id: number; name: string };
 type Customer = { id: number; name: string };
 type Category = { id: number; name: string };
-type Menu = { id: number; nameTh: string; nameEn: string | null; price: number; imageUrl: string | null; categoryId: number; allowedToppingIds?: number[] };
+type Menu = { id: number; nameTh: string; nameEn: string | null; price: number; imageUrl: string | null; categoryId: number; allowedToppingIds?: number[]; allowedRequestIds?: number[] };
 type Topping = { id: number; name: string; price: number };
 type SpecialRequest = { id: number; name: string };
 type OrderItem = {
@@ -423,47 +423,6 @@ export default function PosMain({
           )}
         </div>
       </div>
-
-      {/* Cart drawer / list - inline for mobile: show items in a collapsible or always visible small list */}
-      {currentOrder && currentOrder.items.length > 0 && (
-        <div className="fixed left-0 right-0 bottom-[88px] max-h-[40vh] overflow-y-auto bg-white border-t border-gray-100 px-3 py-2">
-          <p className="text-xs font-medium text-gray-500 mb-2">รายการสั่ง</p>
-          <ul className="space-y-1.5">
-            {currentOrder.items.map((item) => (
-              <li key={item.id} className="flex items-center justify-between text-sm py-1 border-b border-gray-50">
-                <div className="flex-1 min-w-0">
-                  <span className="font-medium text-gray-900">{item.menu.nameTh}</span>
-                  <span className="text-gray-500 ml-1">x{item.quantity}</span>
-                  {item.note && <span className="block text-xs text-gray-400 truncate">{item.note}</span>}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">฿{(item.price * item.quantity).toFixed(0)}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const menu = data.menus.find((m) => m.id === item.menuId);
-                      if (menu) {
-                        setEditingItemId(item.id);
-                        setMenuModal({ ...menu } as Menu);
-                      }
-                    }}
-                    className="text-orange-500 hover:text-orange-600 font-medium text-xs px-2 py-1 rounded bg-orange-50"
-                  >
-                    แก้
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeItem(item.id)}
-                    className="text-red-500 hover:text-red-600 font-medium text-xs px-2 py-1 rounded bg-red-50"
-                  >
-                    ลบ
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
 
       {menuModal && (
         <PosMenuModal
