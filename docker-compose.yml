@@ -24,6 +24,9 @@ services:
       - DATABASE_URL=postgresql://admin:password123@db:5432/maisonnam_pos?schema=public
     depends_on:
       - db
+    volumes:
+      - uploads:/app/public/uploads
 
 volumes:
   pgdata:
+  uploads:

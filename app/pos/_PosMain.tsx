@@ -17,6 +17,7 @@ type OrderItem = {
   note: string | null;
   toppings: unknown;
   requests: unknown;
+  sentToKitchen: boolean;
   menu: { id: number; nameTh: string; nameEn: string | null; price: number };
 };
 
@@ -207,6 +208,20 @@ export default function PosMain({
   }) ?? [];
 
   const subtotal = currentOrder?.items.reduce((s, i) => s + i.price * i.quantity, 0) ?? 0;
+  const newItemsCount = currentOrder?.items.filter((i) => !i.sentToKitchen).length ?? 0;
+
+  const handleKitchen = async () => {
+    if (!currentOrder?.id) return;
+    setLoading(true);
+    try {
+      await fetch(`/api/pos/orders/${currentOrder.id}/kitchen`, { method: "POST" });
+      await fetchOrder();
+      setToast("ส่งเข้าครัวแล้ว");
+      setTimeout(() => setToast(""), 2000);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!data) {
     return (
@@ -368,7 +383,9 @@ export default function PosMain({
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-3">
         <div className="flex items-center justify-between gap-3 mb-2">
           <span className="text-sm text-gray-600">
-            {currentOrder ? `${currentOrder.items.length} รายการ` : "ยังไม่มีรายการ"}
+            {currentOrder
+              ? `${currentOrder.items.length} รายการ${newItemsCount > 0 ? ` · ใหม่ ${newItemsCount}` : ""}`
+              : tableId ? "เลือกเมนูเพื่อเริ่มรับออเดอร์" : "เลือกโต๊ะก่อน"}
           </span>
           <span className="font-semibold text-gray-900">
             รวม ฿{subtotal.toFixed(0)}
@@ -382,17 +399,25 @@ export default function PosMain({
               disabled={loading}
               className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium shadow-sm transition-colors"
             >
-              เปิดบิล
+              เริ่มรับออเดอร์
             </button>
           )}
           {currentOrder && (
             <>
               <button
                 type="button"
+                onClick={handleKitchen}
+                disabled={loading || newItemsCount === 0}
+                className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium shadow-sm transition-colors disabled:opacity-40"
+              >
+                ส่งเข้าครัว{newItemsCount > 0 ? ` (${newItemsCount})` : ""}
+              </button>
+              <button
+                type="button"
                 onClick={() => currentOrder.tableId && onOpenBill(currentOrder.tableId, currentOrder.id)}
                 className="flex-1 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white text-sm font-medium shadow-sm transition-colors"
               >
-                เช็คบิล
+                เรียกเก็บเงิน
               </button>
             </>
           )}

@@ -147,7 +147,6 @@ export default function SettingsClient({ initialSettings }: Props) {
               id="qr-upload"
               type="file"
               accept="image/*"
-              capture="environment"
               className="hidden"
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 const f = e.target.files?.[0];
