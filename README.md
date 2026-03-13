@@ -1,37 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ไม้ซ่อนน้ำ POS
 
-## Getting Started
+Point of Sale และระบบจัดการร้านสำหรับ **ไม้ซ่อนน้ำ** — Next.js, Prisma, PostgreSQL
 
-First, run the development server:
+## Tech stack
+
+- **Next.js 16** (App Router)
+- **React 19**
+- **Prisma** + **PostgreSQL**
+- **Tailwind CSS 4**
+
+## Features
+
+- **POS** — รับออเดอร์ เลือกโต๊ะ/ลูกค้า เมนู + Topping + คำขอพิเศษ ชำระเงิน (เงินสด/โอน) พิมพ์ใบเสร็จ
+- **Admin** — จัดการเมนู หมวดหมู่ Topping คำขอพิเศษ โต๊ะ ลูกค้า พนักงาน เงินเดือน รายงาน ตั้งค่า ออเดอร์ที่ไม่มีโต๊ะ
+- **Order monitor** — จอคิวออเดอร์ส่งครัว ทำแล้ว/เหลือกี่จาน
+- **Order QR** — ลูกค้าสแกนดูสถานะออเดอร์ โอนชำระ นับถอยหลัง 24 ชม.
+- **Receipts** — ดูและพิมพ์ใบเสร็จ
+- **PIN login** — เข้า POS ด้วย PIN (พนักงาน/เจ้าของ)
+- **Soft delete เมนู** — ลบเมนูได้แม้มีออเดอร์เก่า (ออเดอร์ยังอ้างอิงชื่อเมนูได้)
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL
+
+### 1. Clone & install
+
+```bash
+git clone https://github.com/molmathe/POSMaisonnam.git
+cd maisonnam-pos
+npm install
+```
+
+### 2. Environment
+
+Create `.env` in the project root:
+
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public"
+```
+
+### 3. Database
+
+```bash
+npx prisma migrate dev
+npm run prisma:seed
+```
+
+### 4. Run
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **POS:** `/pos` (หลังใส่ PIN)
+- **Admin:** `/admin`
+- **Order monitor:** `/order-monitor`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start dev server |
+| `npm run build` | Production build |
+| `npm run start` | Start production server |
+| `npx prisma migrate dev` | Run migrations |
+| `npm run prisma:seed` | Seed database |
 
-To learn more about Next.js, take a look at the following resources:
+## License
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# POSMaisonnam
+Private — ไม้ซ่อนน้ำ
