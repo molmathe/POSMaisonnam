@@ -16,6 +16,8 @@ async function getOrderByToken(token: string) {
     price: i.price,
     total: i.price * i.quantity,
     note: i.note,
+    toppings: i.toppings as { name: string }[] | null,
+    requests: i.requests as string[] | null,
   }));
   const totalPrice = items.reduce((s, i) => s + i.total, 0);
   return {
@@ -65,9 +67,15 @@ export default async function OrderQrPage({
                   <div className="flex-1 pr-4">
                     <span className="font-medium text-gray-900">{item.name}</span>
                     <span className="text-orange-600 ml-2 font-medium">x{item.quantity}</span>
-                    {item.note ? (
-                      <p className="text-xs text-gray-500 mt-1">{item.note}</p>
-                    ) : null}
+                    {item.toppings && item.toppings.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-0.5">Topping: {item.toppings.map((t) => t.name).join(", ")}</p>
+                    )}
+                    {item.requests && item.requests.length > 0 && (
+                      <p className="text-xs text-gray-500">คำขอ: {item.requests.join(", ")}</p>
+                    )}
+                    {item.note && (
+                      <p className="text-xs text-gray-500">หมายเหตุ: {item.note}</p>
+                    )}
                   </div>
                   <span className="text-gray-900 font-medium">฿{item.total.toFixed(0)}</span>
                 </li>

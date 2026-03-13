@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, type ComponentProps } from "react";
 import PosMenuModal from "./_PosMenuModal";
+import { printKitchenTicket } from "@/lib/pos-print";
 
 type Table = { id: number; name: string };
 type Customer = { id: number; name: string };
@@ -214,8 +215,12 @@ export default function PosMain({
     if (!currentOrder?.id) return;
     setLoading(true);
     try {
-      await fetch(`/api/pos/orders/${currentOrder.id}/kitchen`, { method: "POST" });
+      const res = await fetch(`/api/pos/orders/${currentOrder.id}/kitchen`, { method: "POST" });
+      const json = await res.json();
       await fetchOrder();
+      if (Array.isArray(json.items) && json.items.length > 0) {
+        printKitchenTicket(json.order, json.items);
+      }
       setToast("ส่งเข้าครัวแล้ว");
       setTimeout(() => setToast(""), 2000);
     } finally {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, type ComponentProps } from "react";
 import PosMenuModal from "./_PosMenuModal";
+import { printKitchenTicket, printReceipt, type ReceiptOrder } from "@/lib/pos-print";
 
 type OrderItem = {
   id: number;
@@ -58,6 +59,7 @@ export default function PosBill({
   const [showMoveTable, setShowMoveTable] = useState(false);
   const [tables, setTables] = useState<{ id: number; name: string }[]>([]);
   const [toast, setToast] = useState("");
+  const [paidOrder, setPaidOrder] = useState<ReceiptOrder | null>(null);
 
   const fetchOrder = useCallback(async () => {
     const res = await fetch(`/api/pos/orders/${orderId}`);
@@ -146,8 +148,12 @@ export default function PosBill({
   const sendKitchen = async () => {
     setLoading(true);
     try {
-      await fetch(`/api/pos/orders/${orderId}/kitchen`, { method: "POST" });
+      const res = await fetch(`/api/pos/orders/${orderId}/kitchen`, { method: "POST" });
+      const json = await res.json();
       await fetchOrder();
+      if (Array.isArray(json.items) && json.items.length > 0) {
+        printKitchenTicket(json.order, json.items);
+      }
       setToast("ส่งเข้าครัวแล้ว");
       setTimeout(() => setToast(""), 2000);
     } finally {
@@ -167,8 +173,8 @@ export default function PosBill({
         }),
       });
       if (res.ok) {
-        setToast("ชำระเงินเรียบร้อย");
-        setTimeout(() => onClose(), 1500);
+        const paid = await res.json();
+        setPaidOrder(paid as ReceiptOrder);
       }
     } finally {
       setLoading(false);
@@ -522,6 +528,65 @@ export default function PosBill({
         <div className="fixed inset-0 flex items-center justify-center bg-black/30 z-20">
           <div className="bg-white px-6 py-4 rounded-xl shadow-lg font-medium">
             {toast}
+          </div>
+        </div>
+      )}
+
+      {/* Receipt overlay after payment */}
+      {paidOrder && (
+        <div className="fixed inset-0 z-40 bg-white flex flex-col">
+          <header className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-green-50">
+            <div>
+              <p className="font-bold text-green-700 text-lg">ชำระเงินเรียบร้อย</p>
+              <p className="text-xs text-gray-500">บิล #{paidOrder.id} · โต๊ะ {paidOrder.table?.name ?? "-"}</p>
+            </div>
+            <span className="text-2xl font-bold text-green-700">฿{paidOrder.totalPrice.toFixed(0)}</span>
+          </header>
+
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1">
+            {paidOrder.items.map((item, i) => (
+              <div key={i} className="flex justify-between text-sm py-1.5 border-b border-gray-100 last:border-0">
+                <span className="text-gray-800">{item.menu.nameTh} <span className="text-gray-500">x{item.quantity}</span></span>
+                <span className="text-gray-800">฿{(item.price * item.quantity).toFixed(0)}</span>
+              </div>
+            ))}
+            <div className="pt-3 space-y-1">
+              <div className="flex justify-between text-sm text-gray-500">
+                <span>ราคารวม</span>
+                <span>฿{paidOrder.items.reduce((s, i) => s + i.price * i.quantity, 0).toFixed(0)}</span>
+              </div>
+              {paidOrder.discount > 0 && (
+                <div className="flex justify-between text-sm text-gray-500">
+                  <span>ส่วนลด</span>
+                  <span>-฿{paidOrder.discount.toFixed(0)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold text-base">
+                <span>ยอดสุทธิ</span>
+                <span className="text-green-700">฿{paidOrder.totalPrice.toFixed(0)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-gray-500">
+                <span>วิธีชำระ</span>
+                <span>{paidOrder.payMethod === "CASH" ? "เงินสด" : paidOrder.payMethod === "QR" ? "สแกน QR" : "-"}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 border-t border-gray-200 flex gap-3">
+            <button
+              type="button"
+              onClick={() => printReceipt(paidOrder)}
+              className="flex-1 py-3 rounded-xl border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+            >
+              พิมพ์ใบเสร็จ
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium transition-colors shadow-sm"
+            >
+              ปิด
+            </button>
           </div>
         </div>
       )}
