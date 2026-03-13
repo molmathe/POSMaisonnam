@@ -236,7 +236,6 @@ export default function PosReceiptsPage() {
                 </ul>
               </div>
             )}
-            </div>
           </div>
         </div>
       )}
