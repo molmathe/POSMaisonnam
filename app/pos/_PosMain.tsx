@@ -274,6 +274,14 @@ export default function PosMain({
                 เช็คชื่อ
               </button>
             )}
+            {isOwner && (
+              <a
+                href="/admin"
+                className="text-[12px] font-semibold text-gray-500 active:opacity-60"
+              >
+                Admin
+              </a>
+            )}
             <button
               type="button"
               onClick={onLogout}

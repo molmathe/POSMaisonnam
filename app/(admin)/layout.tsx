@@ -1,6 +1,7 @@
 import "../globals.css";
 import Link from "next/link";
 import AdminNav from "./_AdminNav";
+import AdminAuthGuard from "./_AdminAuthGuard";
 
 const SIDEBAR_ITEMS = [
   { group: null, href: "/admin", label: "📊 ภาพรวม" },
@@ -18,7 +19,7 @@ const SIDEBAR_ITEMS = [
   { group: "จอแสดงผล", href: "/order-monitor", label: "📺 จอคิวออเดอร์", external: true },
 ];
 
-export default function AdminLayout({
+function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -96,6 +97,18 @@ export default function AdminLayout({
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminLayoutWithGuard({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <AdminAuthGuard>
+      <AdminLayout>{children}</AdminLayout>
+    </AdminAuthGuard>
   );
 }
 
