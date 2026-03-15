@@ -58,10 +58,24 @@ export async function DELETE(
       );
     }
 
-    // Permanently delete soft-deleted menus in this category (they still hold the FK)
-    await prisma.menu.deleteMany({
+    // Soft-deleted menus still hold the categoryId FK and may have OrderItems (no cascade).
+    // Reassign them to another category so the FK is released before deleting.
+    const hasSoftDeleted = await prisma.menu.count({
       where: { categoryId: id, deletedAt: { not: null } },
     });
+    if (hasSoftDeleted > 0) {
+      const otherCat = await prisma.category.findFirst({ where: { id: { not: id } } });
+      if (!otherCat) {
+        return NextResponse.json(
+          { message: "ไม่สามารถลบหมวดหมู่เดียวที่มีอยู่ในระบบได้" },
+          { status: 400 }
+        );
+      }
+      await prisma.menu.updateMany({
+        where: { categoryId: id, deletedAt: { not: null } },
+        data: { categoryId: otherCat.id },
+      });
+    }
 
     await prisma.category.delete({ where: { id } });
     return NextResponse.json({ success: true });
