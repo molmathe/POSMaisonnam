@@ -5,7 +5,7 @@ export async function GET() {
   const settings = await prisma.systemSetting.findMany({
     where: {
       key: {
-        in: ["POS_PINCODE", "PAYMENT_QR_IMAGE"],
+        in: ["POS_PINCODE", "PAYMENT_QR_IMAGE", "RECEIPT_WIDTH", "ORDER_PAPER_WIDTH"],
       },
     },
   });
@@ -15,9 +15,13 @@ export async function GET() {
   });
 
   const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  const receiptWidth = map.RECEIPT_WIDTH === "58mm" || map.RECEIPT_WIDTH === "80mm" ? map.RECEIPT_WIDTH : "80mm";
+  const orderPaperWidth = map.ORDER_PAPER_WIDTH === "58mm" || map.ORDER_PAPER_WIDTH === "80mm" ? map.ORDER_PAPER_WIDTH : "80mm";
   return NextResponse.json({
     posPincode: map.POS_PINCODE || "1234",
     ownerPincode: owner?.pinCode || null,
     paymentQrUrl: map.PAYMENT_QR_IMAGE || "",
+    receiptWidth,
+    orderPaperWidth,
   });
 }

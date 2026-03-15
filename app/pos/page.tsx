@@ -8,7 +8,7 @@ import PosOwnerAttendance from "./_PosOwnerAttendance";
 import PosOrders from "./_PosOrders";
 import PosReceiptsTab from "./_PosReceiptsTab";
 
-type PosSettings = { paymentQrUrl: string };
+type PosSettings = { paymentQrUrl: string; receiptWidth?: string; orderPaperWidth?: string };
 type Tab = "menu" | "orders" | "receipts";
 
 export default function PosPage() {
@@ -16,6 +16,8 @@ export default function PosPage() {
   const [isOwner, setIsOwner] = useState(false);
   const [employeeName, setEmployeeName] = useState<string | null>(null);
   const [paymentQrUrl, setPaymentQrUrl] = useState("");
+  const [receiptWidth, setReceiptWidth] = useState<"58mm" | "80mm">("80mm");
+  const [orderPaperWidth, setOrderPaperWidth] = useState<"58mm" | "80mm">("80mm");
   const [view, setView] = useState<"main" | "bill" | "attendance">("main");
   const [tab, setTab] = useState<Tab>("menu");
   const [billOrderId, setBillOrderId] = useState<number | null>(null);
@@ -25,6 +27,8 @@ export default function PosPage() {
     if (res.ok) {
       const d: PosSettings = await res.json();
       setPaymentQrUrl(d.paymentQrUrl ?? "");
+      setReceiptWidth((d.receiptWidth === "58mm" || d.receiptWidth === "80mm") ? d.receiptWidth : "80mm");
+      setOrderPaperWidth((d.orderPaperWidth === "58mm" || d.orderPaperWidth === "80mm") ? d.orderPaperWidth : "80mm");
     }
   }, []);
 
@@ -89,6 +93,8 @@ export default function PosPage() {
         orderId={billOrderId}
         paymentQrUrl={paymentQrUrl}
         employeeName={employeeName}
+        receiptWidth={receiptWidth}
+        orderPaperWidth={orderPaperWidth}
         onClose={closeBill}
         onLogout={handleLogout}
       />
@@ -148,7 +154,7 @@ export default function PosPage() {
                 ออก
               </button>
             </header>
-            <PosReceiptsTab />
+            <PosReceiptsTab receiptWidth={receiptWidth} />
           </div>
         )}
       </div>

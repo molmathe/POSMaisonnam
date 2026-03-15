@@ -53,6 +53,7 @@ export default function SettingsClient({ initialSettings }: Props) {
   const [qrPreview, setQrPreview] = useState<string | null>(
     initialSettings.find((s) => s.key === "PAYMENT_QR_IMAGE")?.value || null
   );
+  const [qrFile, setQrFile] = useState<File | null>(null);
 
   function getValue(key: string) {
     return settings.find((s) => s.key === key)?.value ?? "";
@@ -84,9 +85,15 @@ export default function SettingsClient({ initialSettings }: Props) {
     }
   }
 
-  async function handleQrFile(file: File) {
+  function handleQrFile(file: File) {
+    setQrFile(file);
+    setQrPreview(URL.createObjectURL(file));
+  }
+
+  async function saveQrFile() {
+    if (!qrFile) return;
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", qrFile);
     setSaving("PAYMENT_QR_IMAGE");
     try {
       const res = await fetch("/api/admin/uploads", {
@@ -97,7 +104,7 @@ export default function SettingsClient({ initialSettings }: Props) {
       const data = await res.json();
       setQrPreview(data.url);
       setValue("PAYMENT_QR_IMAGE", data.url);
-      // auto-save
+      setQrFile(null);
       await fetch("/api/admin/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -163,7 +170,9 @@ export default function SettingsClient({ initialSettings }: Props) {
                     (e.target as HTMLImageElement).style.display = "none";
                   }}
                 />
-                <p className="text-xs text-gray-500">กดหรือลากเพื่อเปลี่ยนรูป QR</p>
+                <p className="text-xs text-gray-500">
+                  {qrFile ? "ตรวจสอบรูปแล้วกด \"บันทึก QR\" ด้านล่าง" : "กดหรือลากเพื่อเปลี่ยนรูป QR"}
+                </p>
               </div>
             ) : (
               <div className="text-gray-500 text-sm py-4">
@@ -172,7 +181,30 @@ export default function SettingsClient({ initialSettings }: Props) {
               </div>
             )}
           </div>
-          {isSaved && (
+          {qrFile && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={saveQrFile}
+                disabled={saving === "PAYMENT_QR_IMAGE"}
+                className="flex-1 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium disabled:opacity-50"
+              >
+                {saving === "PAYMENT_QR_IMAGE" ? "กำลังบันทึก..." : "บันทึก QR"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setQrFile(null);
+                  const prev = initialSettings.find((s) => s.key === "PAYMENT_QR_IMAGE")?.value || null;
+                  setQrPreview(prev);
+                }}
+                className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50"
+              >
+                ยกเลิก
+              </button>
+            </div>
+          )}
+          {isSaved && !qrFile && (
             <p className="text-xs text-green-600">บันทึกแล้ว</p>
           )}
         </div>

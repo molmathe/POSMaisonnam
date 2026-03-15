@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { getMenuImageUrl } from "@/lib/get-menu-image-url";
 import MenuEditModal from "./_MenuEditModal";
 
 type Category = { id: number; name: string };
@@ -76,7 +77,7 @@ export default function MenuList({ initialMenus, categories, toppings, specialRe
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 {menu.imageUrl ? (
                   <img
-                    src={menu.imageUrl}
+                    src={getMenuImageUrl(menu.imageUrl)}
                     alt={menu.nameTh}
                     className="h-12 w-12 rounded-lg object-cover border border-gray-200 flex-shrink-0 bg-gray-50"
                     onError={(e) => {

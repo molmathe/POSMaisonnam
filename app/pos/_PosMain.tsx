@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, type ComponentProps } from "react";
 import PosMenuModal from "./_PosMenuModal";
+import { getMenuImageUrl } from "@/lib/get-menu-image-url";
 import { printKitchenTicket } from "@/lib/pos-print";
 
 type Table = { id: number; name: string };
@@ -38,6 +39,8 @@ type PosData = {
   menus: Menu[];
   toppings: Topping[];
   specialRequests: SpecialRequest[];
+  receiptWidth?: "58mm" | "80mm";
+  orderPaperWidth?: "58mm" | "80mm";
 };
 
 export default function PosMain({
@@ -86,6 +89,12 @@ export default function PosMain({
 
   useEffect(() => {
     fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    const onFocus = () => fetchData();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, [fetchData]);
 
   useEffect(() => {
@@ -223,7 +232,7 @@ export default function PosMain({
       const json = await res.json();
       await fetchOrder();
       if (Array.isArray(json.items) && json.items.length > 0) {
-        printKitchenTicket(json.order, json.items, employeeName);
+        printKitchenTicket(json.order, json.items, employeeName, data?.orderPaperWidth ?? "80mm");
       }
       setToast("ส่งเข้าครัวแล้ว");
       setTimeout(() => setToast(""), 2000);
@@ -360,7 +369,7 @@ export default function PosMain({
               {menu.imageUrl && (
                 <div className="aspect-square -mx-4 -mt-4 mb-3 bg-gray-100 overflow-hidden rounded-t-2xl">
                   <img
-                    src={menu.imageUrl}
+                    src={getMenuImageUrl(menu.imageUrl)}
                     alt=""
                     className="h-full w-full object-cover"
                     onError={(e) => {

@@ -36,11 +36,16 @@ npm install
 
 ### 2. Environment
 
-Create `.env` in the project root:
+คัดลอกจาก `.env.example` แล้วแก้ค่าใน `.env`:
 
-```env
-DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public"
+```bash
+cp .env.example .env
 ```
+
+แก้ใน `.env`:
+
+- **DATABASE_URL** — เชื่อมต่อ PostgreSQL (ต้องมี)
+- **NEXT_PUBLIC_APP_URL** — ใน production ใส่ URL จริงที่ลูกค้าเข้าได้ (เช่น `https://pos.yourdomain.com`) เพื่อให้ลิงก์ QR บนใบเสร็จและหน้า Order QR ทำงานถูก
 
 ### 3. Database
 
@@ -70,6 +75,27 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npm run start` | Start production server |
 | `npx prisma migrate dev` | Run migrations |
 | `npm run prisma:seed` | Seed database |
+
+## Production / Real-world use
+
+ฟีเจอร์หลักพร้อมใช้ในร้านจริง (รับออเดอร์ ชำระเงิน ใบเสร็จ ส่งครัว QR ลูกค้า รายงาน) แต่ควรทำดังนี้:
+
+1. **Environment**
+   - ตั้ง `NEXT_PUBLIC_APP_URL=https://โดเมนจริง` ใน production เพื่อให้ลิงก์ QR บนใบเสร็จ/ลูกค้าสแกนถูกต้อง
+   - คัดลอกจาก `.env.example` ไปเป็น `.env` แล้วใส่ค่าให้ครบ
+
+2. **ความปลอดภัย**
+   - **Admin** (`/admin`) ไม่มี login — ควรใช้เฉพาะในเครือข่ายภายในหรือ VPN หรือเพิ่มการยืนยันตัวตน (เช่น middleware / auth) ตามนโยบายร้าน
+   - **POS** เข้าด้วย PIN (ตรวจที่ server ที่ `/api/pos/verify-pin`) แต่ API อื่นของ POS ไม่ตรวจ session — เหมาะกับร้านที่ใช้ POS แค่ในร้าน/เครื่องเดียว
+   - เปลี่ยนรหัส PIN เริ่มต้น: ไปที่ Admin > ตั้งค่า > POS_PINCODE (และลบค่า default 1234 หลังติดตั้ง)
+
+3. **การพิมพ์**
+   - ใบเสร็จและใบสั่งครัวรองรับกระดาษ 58mm / 80mm กำหนดที่ Admin > ตั้งค่า (RECEIPT_WIDTH, ORDER_PAPER_WIDTH)
+   - ใบเสร็จใช้ QR จาก api.qrserver.com — ถ้าเน็ตล่มรูป QR อาจไม่โหลด (เนื้อหาใบเสร็จยังพิมพ์ได้)
+
+4. **ข้อมูลและความถูกต้อง**
+   - ชำระเงิน: ต้องเลือกวิธีชำระ (เงินสด/โอน) ระบบถึงจะบันทึก
+   - หลังชำระจะสร้าง QR ให้ออเดอร์อัตโนมัติ และแสดง/พิมพ์จากค่าที่ server บันทึกแล้ว
 
 ## License
 

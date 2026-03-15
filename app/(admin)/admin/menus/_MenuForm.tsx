@@ -24,39 +24,6 @@ export default function MenuForm({ categories, toppings, specialRequests }: Prop
   const [dragOver, setDragOver] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const DRAG_TYPE_TOPPING = "application/x-menu-topping";
-  const DRAG_TYPE_REQUEST = "application/x-menu-request";
-
-  function handleToppingDragStart(e: DragEvent<HTMLDivElement>, id: number) {
-    e.dataTransfer.setData(DRAG_TYPE_TOPPING, String(id));
-    e.dataTransfer.effectAllowed = "copy";
-  }
-  function handleRequestDragStart(e: DragEvent<HTMLDivElement>, id: number) {
-    e.dataTransfer.setData(DRAG_TYPE_REQUEST, String(id));
-    e.dataTransfer.effectAllowed = "copy";
-  }
-  function handleToppingDropZoneDragOver(e: DragEvent<HTMLDivElement>) {
-    if (e.dataTransfer.types.includes(DRAG_TYPE_TOPPING)) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "copy";
-    }
-  }
-  function handleToppingDrop(e: DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    const id = e.dataTransfer.getData(DRAG_TYPE_TOPPING);
-    if (id && !selectedToppingIds.includes(Number(id))) setSelectedToppingIds((prev) => [...prev, Number(id)]);
-  }
-  function handleRequestDropZoneDragOver(e: DragEvent<HTMLDivElement>) {
-    if (e.dataTransfer.types.includes(DRAG_TYPE_REQUEST)) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "copy";
-    }
-  }
-  function handleRequestDrop(e: DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    const id = e.dataTransfer.getData(DRAG_TYPE_REQUEST);
-    if (id && !selectedRequestIds.includes(Number(id))) setSelectedRequestIds((prev) => [...prev, Number(id)]);
-  }
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -224,42 +191,47 @@ export default function MenuForm({ categories, toppings, specialRequests }: Prop
       {toppings.length > 0 && (
         <div className="space-y-1">
           <label className="block text-xs md:text-sm font-medium text-gray-700">
-            Topping ที่แสดงบน POS <span className="text-gray-400">(ลากการ์ดมาวาง หรือคลิกแท็กเพื่อลบ)</span>
+            Topping ที่แสดงบน POS
           </label>
-          <div
-            onDragOver={handleToppingDropZoneDragOver}
-            onDrop={handleToppingDrop}
-            onDragLeave={(e) => e.preventDefault()}
-            className="min-h-[48px] rounded-lg border-2 border-dashed border-gray-200 bg-gray-50/50 p-2 flex flex-wrap gap-2"
-          >
-            {selectedToppingIds.length === 0 ? (
-              <span className="text-xs text-gray-400 self-center">วาง Topping ที่นี่</span>
-            ) : (
-              toppings
-                .filter((t) => selectedToppingIds.includes(t.id))
-                .map((t) => (
+          <div className="grid grid-cols-2 rounded-lg border border-gray-200 overflow-hidden text-sm">
+            <div className="bg-gray-50 p-2 border-r border-gray-200">
+              <p className="text-xs font-medium text-gray-500 mb-1.5">พร้อมใช้งาน</p>
+              <div className="space-y-1">
+                {toppings.filter((t) => !selectedToppingIds.includes(t.id)).map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setSelectedToppingIds((prev) => [...prev, t.id])}
+                    className="w-full text-left px-2 py-1.5 rounded-lg bg-white border border-gray-200 hover:border-orange-300 hover:bg-orange-50 flex items-center justify-between gap-1"
+                  >
+                    <span className="truncate">{t.name} +฿{t.price.toFixed(0)}</span>
+                    <span className="text-orange-500 shrink-0 font-bold">+</span>
+                  </button>
+                ))}
+                {toppings.filter((t) => !selectedToppingIds.includes(t.id)).length === 0 && (
+                  <p className="text-xs text-gray-400 text-center py-2">ทั้งหมดถูกเลือกแล้ว</p>
+                )}
+              </div>
+            </div>
+            <div className="bg-orange-50 p-2">
+              <p className="text-xs font-medium text-orange-600 mb-1.5">ใช้อยู่</p>
+              <div className="space-y-1">
+                {toppings.filter((t) => selectedToppingIds.includes(t.id)).map((t) => (
                   <button
                     key={t.id}
                     type="button"
                     onClick={() => setSelectedToppingIds((prev) => prev.filter((id) => id !== t.id))}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-100 text-orange-800 text-sm font-medium hover:bg-orange-200 border border-orange-200"
+                    className="w-full text-left px-2 py-1.5 rounded-lg bg-orange-100 border border-orange-200 text-orange-800 hover:bg-red-50 hover:border-red-300 hover:text-red-700 flex items-center justify-between gap-1"
                   >
-                    {t.name} +฿{t.price.toFixed(0)} ✕
+                    <span className="truncate">{t.name} +฿{t.price.toFixed(0)}</span>
+                    <span className="shrink-0">✕</span>
                   </button>
-                ))
-            )}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {toppings.map((t) => (
-              <div
-                key={t.id}
-                draggable
-                onDragStart={(e) => handleToppingDragStart(e, t.id)}
-                className="px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm cursor-grab active:cursor-grabbing shadow-sm hover:border-orange-300 hover:shadow"
-              >
-                {t.name} +฿{t.price.toFixed(0)}
+                ))}
+                {selectedToppingIds.length === 0 && (
+                  <p className="text-xs text-orange-300 text-center py-2">ยังไม่มี</p>
+                )}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       )}
@@ -267,42 +239,47 @@ export default function MenuForm({ categories, toppings, specialRequests }: Prop
       {specialRequests.length > 0 && (
         <div className="space-y-1">
           <label className="block text-xs md:text-sm font-medium text-gray-700">
-            คำขอพิเศษที่แสดงบน POS <span className="text-gray-400">(ลากการ์ดมาวาง หรือคลิกแท็กเพื่อลบ)</span>
+            คำขอพิเศษที่แสดงบน POS
           </label>
-          <div
-            onDragOver={handleRequestDropZoneDragOver}
-            onDrop={handleRequestDrop}
-            onDragLeave={(e) => e.preventDefault()}
-            className="min-h-[48px] rounded-lg border-2 border-dashed border-gray-200 bg-gray-50/50 p-2 flex flex-wrap gap-2"
-          >
-            {selectedRequestIds.length === 0 ? (
-              <span className="text-xs text-gray-400 self-center">วางคำขอพิเศษที่นี่</span>
-            ) : (
-              specialRequests
-                .filter((r) => selectedRequestIds.includes(r.id))
-                .map((r) => (
+          <div className="grid grid-cols-2 rounded-lg border border-gray-200 overflow-hidden text-sm">
+            <div className="bg-gray-50 p-2 border-r border-gray-200">
+              <p className="text-xs font-medium text-gray-500 mb-1.5">พร้อมใช้งาน</p>
+              <div className="space-y-1">
+                {specialRequests.filter((r) => !selectedRequestIds.includes(r.id)).map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setSelectedRequestIds((prev) => [...prev, r.id])}
+                    className="w-full text-left px-2 py-1.5 rounded-lg bg-white border border-gray-200 hover:border-orange-300 hover:bg-orange-50 flex items-center justify-between gap-1"
+                  >
+                    <span className="truncate">{r.name}</span>
+                    <span className="text-orange-500 shrink-0 font-bold">+</span>
+                  </button>
+                ))}
+                {specialRequests.filter((r) => !selectedRequestIds.includes(r.id)).length === 0 && (
+                  <p className="text-xs text-gray-400 text-center py-2">ทั้งหมดถูกเลือกแล้ว</p>
+                )}
+              </div>
+            </div>
+            <div className="bg-orange-50 p-2">
+              <p className="text-xs font-medium text-orange-600 mb-1.5">ใช้อยู่</p>
+              <div className="space-y-1">
+                {specialRequests.filter((r) => selectedRequestIds.includes(r.id)).map((r) => (
                   <button
                     key={r.id}
                     type="button"
                     onClick={() => setSelectedRequestIds((prev) => prev.filter((id) => id !== r.id))}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-100 text-orange-800 text-sm font-medium hover:bg-orange-200 border border-orange-200"
+                    className="w-full text-left px-2 py-1.5 rounded-lg bg-orange-100 border border-orange-200 text-orange-800 hover:bg-red-50 hover:border-red-300 hover:text-red-700 flex items-center justify-between gap-1"
                   >
-                    {r.name} ✕
+                    <span className="truncate">{r.name}</span>
+                    <span className="shrink-0">✕</span>
                   </button>
-                ))
-            )}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {specialRequests.map((r) => (
-              <div
-                key={r.id}
-                draggable
-                onDragStart={(e) => handleRequestDragStart(e, r.id)}
-                className="px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm cursor-grab active:cursor-grabbing shadow-sm hover:border-orange-300 hover:shadow"
-              >
-                {r.name}
+                ))}
+                {selectedRequestIds.length === 0 && (
+                  <p className="text-xs text-orange-300 text-center py-2">ยังไม่มี</p>
+                )}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       )}

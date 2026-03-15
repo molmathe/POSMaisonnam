@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const [tables, customers, categories, menusRaw, toppings, specialRequests] =
+  const [tables, customers, categories, menusRaw, toppings, specialRequests, printSettings] =
     await Promise.all([
       prisma.table.findMany({ orderBy: { name: "asc" } }),
       prisma.customer.findMany({ orderBy: { name: "asc" } }),
@@ -18,7 +18,12 @@ export async function GET() {
       }),
       prisma.topping.findMany({ orderBy: { id: "asc" } }),
       prisma.specialRequest.findMany({ orderBy: { id: "asc" } }),
+      prisma.systemSetting.findMany({
+        where: { key: { in: ["RECEIPT_WIDTH", "ORDER_PAPER_WIDTH"] } },
+      }),
     ]);
+  const receiptWidth = printSettings.find((s) => s.key === "RECEIPT_WIDTH")?.value ?? "80mm";
+  const orderPaperWidth = printSettings.find((s) => s.key === "ORDER_PAPER_WIDTH")?.value ?? "80mm";
 
   const menus = menusRaw.map((m) => {
     const { menuToppings, menuSpecialRequests, ...rest } = m as typeof m & {
@@ -39,5 +44,7 @@ export async function GET() {
     menus,
     toppings,
     specialRequests,
+    receiptWidth: receiptWidth === "58mm" || receiptWidth === "80mm" ? receiptWidth : "80mm",
+    orderPaperWidth: orderPaperWidth === "58mm" || orderPaperWidth === "80mm" ? orderPaperWidth : "80mm",
   });
 }

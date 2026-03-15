@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getMenuImageUrl } from "@/lib/get-menu-image-url";
 
 type Menu = { id: number; nameTh: string; nameEn: string | null; price: number; imageUrl?: string | null };
 type Topping = { id: number; name: string; price: number; group?: string | null };
@@ -97,7 +98,7 @@ export default function PosMenuModal({
           <div className="flex-1 min-w-0">
             {menu.imageUrl && (
               <img
-                src={menu.imageUrl}
+                src={getMenuImageUrl(menu.imageUrl)}
                 alt=""
                 className="h-16 w-16 rounded-lg object-cover border border-gray-200 mb-2"
                 onError={(e) => {

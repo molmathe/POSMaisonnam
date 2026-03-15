@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(
@@ -38,6 +39,12 @@ export async function POST(
     const methodRaw = typeof body.payMethod === "string" ? body.payMethod.toUpperCase() : null;
     const payMethod =
       methodRaw === "CASH" || methodRaw === "QR" ? (methodRaw as "CASH" | "QR") : null;
+    if (!payMethod) {
+      return NextResponse.json(
+        { message: "กรุณาเลือกวิธีชำระเงิน (เงินสด หรือ โอนชำระ)" },
+        { status: 400 }
+      );
+    }
 
     const subtotal = order.items.reduce(
       (s, i) => s + i.price * i.quantity,
@@ -54,6 +61,10 @@ export async function POST(
         ? Math.max(0, cashReceived - totalPrice)
         : null;
 
+    const now = new Date();
+    const qrExpiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 ชม.
+    const qrToken = crypto.randomBytes(16).toString("hex");
+
     await prisma.order.update({
       where: { id },
       data: {
@@ -61,9 +72,11 @@ export async function POST(
         totalPrice,
         discount,
         payMethod,
-        paidAt: new Date(),
+        paidAt: now,
         cashReceived: cashReceived ?? undefined,
         changeAmount: changeAmount ?? undefined,
+        qrToken,
+        qrExpires: qrExpiresAt,
       },
     });
 

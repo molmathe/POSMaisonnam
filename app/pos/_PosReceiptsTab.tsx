@@ -22,10 +22,11 @@ type Receipt = {
   paidAt: string | null;
   table: { name: string } | null;
   customer: { name: string } | null;
+  qrToken?: string | null;
   items: OrderItem[];
 };
 
-export default function PosReceiptsTab() {
+export default function PosReceiptsTab({ receiptWidth = "80mm" }: { receiptWidth?: "58mm" | "80mm" }) {
   const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [summary, setSummary] = useState({ sumTotal: 0, sumDiscount: 0, sumCash: 0, sumQr: 0 });
@@ -211,7 +212,12 @@ export default function PosReceiptsTab() {
             <div className="px-4 pb-4 pt-2 flex gap-2">
               <button
                 type="button"
-                onClick={() => printReceipt(selected as unknown as ReceiptOrder)}
+                onClick={() => {
+                const orderQrUrl = selected.qrToken && typeof window !== "undefined"
+                  ? `${window.location.origin}/order/qr/${selected.qrToken}`
+                  : undefined;
+                printReceipt({ ...selected, orderQrUrl } as unknown as ReceiptOrder, receiptWidth);
+              }}
                 className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 พิมพ์ใบเสร็จ

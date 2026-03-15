@@ -39,12 +39,16 @@ export default function PosBill({
   orderId,
   paymentQrUrl,
   employeeName,
+  receiptWidth = "80mm",
+  orderPaperWidth = "80mm",
   onClose,
   onLogout,
 }: {
   orderId: number;
   paymentQrUrl: string;
   employeeName: string | null;
+  receiptWidth?: "58mm" | "80mm";
+  orderPaperWidth?: "58mm" | "80mm";
   onClose: () => void;
   onLogout: () => void;
 }) {
@@ -160,7 +164,7 @@ export default function PosBill({
       const json = await res.json();
       await fetchOrder();
       if (Array.isArray(json.items) && json.items.length > 0) {
-        printKitchenTicket(json.order, json.items, employeeName);
+        printKitchenTicket(json.order, json.items, employeeName, orderPaperWidth);
       }
       setToast("ส่งเข้าครัวแล้ว");
       setTimeout(() => setToast(""), 2000);
@@ -184,6 +188,10 @@ export default function PosBill({
       if (res.ok) {
         const paid = await res.json();
         setPaidOrder(paid as ReceiptOrder);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setToast(typeof err.message === "string" ? err.message : "ไม่สามารถชำระเงินได้");
+        setTimeout(() => setToast(""), 4000);
       }
     } finally {
       setLoading(false);
@@ -605,15 +613,15 @@ export default function PosBill({
                 <span>วิธีชำระ</span>
                 <span>{paidOrder.payMethod === "CASH" ? "เงินสด" : paidOrder.payMethod === "QR" ? "โอนชำระ" : "-"}</span>
               </div>
-              {paidOrder.payMethod === "CASH" && cashNum > 0 && (
+              {paidOrder.payMethod === "CASH" && (paidOrder.cashReceived ?? 0) > 0 && (
                 <>
                   <div className="flex justify-between text-sm text-gray-500">
                     <span>รับเงินมา</span>
-                    <span>฿{cashNum.toFixed(0)}</span>
+                    <span>฿{Number(paidOrder.cashReceived).toFixed(0)}</span>
                   </div>
                   <div className="flex justify-between text-sm font-semibold text-blue-600">
                     <span>เงินทอน</span>
-                    <span>฿{(cashNum - paidOrder.totalPrice).toFixed(0)}</span>
+                    <span>฿{(Number(paidOrder.cashReceived) - paidOrder.totalPrice).toFixed(0)}</span>
                   </div>
                 </>
               )}
@@ -629,7 +637,14 @@ export default function PosBill({
           <div className="p-4 border-t border-gray-200 flex gap-3">
             <button
               type="button"
-              onClick={() => printReceipt({ ...paidOrder, cashReceived: paidOrder.payMethod === "CASH" && cashNum > 0 ? cashNum : undefined })}
+              onClick={() => {
+                const token = (paidOrder as unknown as { qrToken?: string }).qrToken;
+                printReceipt({
+                  ...paidOrder,
+                  cashReceived: paidOrder.payMethod === "CASH" && (paidOrder.cashReceived ?? 0) > 0 ? paidOrder.cashReceived : undefined,
+                  orderQrUrl: token && typeof window !== "undefined" ? `${window.location.origin}/order/qr/${token}` : undefined,
+                }, receiptWidth);
+              }}
               className="flex-1 py-3 rounded-xl border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition-colors"
             >
               พิมพ์ใบเสร็จ
