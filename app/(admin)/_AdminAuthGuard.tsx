@@ -9,7 +9,11 @@ export default function AdminAuthGuard({ children }: { children: React.ReactNode
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (sessionStorage.getItem("admin_unlocked") === "1") {
+    // Allow access if already logged in as OWNER in POS (same browser session)
+    if (
+      sessionStorage.getItem("pos_unlocked") === "1" &&
+      sessionStorage.getItem("pos_owner") === "1"
+    ) {
       setStatus("unlocked");
     } else {
       setStatus("locked");
@@ -33,7 +37,9 @@ export default function AdminAuthGuard({ children }: { children: React.ReactNode
         setPin("");
         return;
       }
-      sessionStorage.setItem("admin_unlocked", "1");
+      // Store as POS owner session so admin stays unlocked while in same tab
+      sessionStorage.setItem("pos_unlocked", "1");
+      sessionStorage.setItem("pos_owner", "1");
       setStatus("unlocked");
     } catch {
       setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
