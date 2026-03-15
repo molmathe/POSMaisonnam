@@ -1,0 +1,2 @@
+{"sessionId":"c8bfa4","runId":"pre-fix","hypothesisId":"H1","location":"app/pos/_PosMain.tsx:createOrder:before","message":"createOrder called","data":{"tableId":1,"customerId":null,"employeeNamePresent":true},"timestamp":1773403237649}
+{"sessionId":"c8bfa4","runId":"pre-fix","hypothesisId":"H1","location":"app/pos/_PosMain.tsx:createOrder:ok","message":"createOrder success","data":{"orderId":13},"timestamp":1773403237925}
