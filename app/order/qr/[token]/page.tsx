@@ -153,7 +153,7 @@ export default async function OrderQrPage({
               <span className="block">วันและเวลาปิดบิล {data.paidAtFormatted}</span>
             )}
           </p>
-          <OrderQrCountdown expiresAt={isPaid ? null : data.qrExpires} />
+          <OrderQrCountdown expiresAt={data.qrExpires} />
         </div>
       </div>
     </div>
