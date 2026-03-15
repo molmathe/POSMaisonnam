@@ -23,7 +23,8 @@ export async function GET(
   if (!order) {
     return NextResponse.json({ message: "ไม่พบรายการหรือรหัสหมดอายุ" }, { status: 404 });
   }
-  if (order.qrExpires && new Date() > order.qrExpires) {
+  // Paid orders never expire
+  if (order.status !== "PAID" && order.qrExpires && new Date() > order.qrExpires) {
     return NextResponse.json({ message: "รหัสหมดอายุแล้ว" }, { status: 410 });
   }
 

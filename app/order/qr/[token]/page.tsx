@@ -19,7 +19,9 @@ async function getOrderByToken(token: string) {
     where: { qrToken: token },
     include: { table: true, customer: true, items: { include: { menu: true } } },
   });
-  if (!order || (order.qrExpires && new Date() > order.qrExpires)) return null;
+  if (!order) return null;
+  // Paid orders never expire — customer can always view their receipt
+  if (order.status !== "PAID" && order.qrExpires && new Date() > order.qrExpires) return null;
   const items = order.items.map((i) => ({
     name: i.menu.nameTh,
     quantity: i.quantity,
@@ -151,7 +153,7 @@ export default async function OrderQrPage({
               <span className="block">วันและเวลาปิดบิล {data.paidAtFormatted}</span>
             )}
           </p>
-          <OrderQrCountdown expiresAt={data.qrExpires} />
+          <OrderQrCountdown expiresAt={isPaid ? null : data.qrExpires} />
         </div>
       </div>
     </div>
