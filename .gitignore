@@ -37,6 +37,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# uploads (user-generated content, managed via Docker volume)
+/public/uploads/
+
+# editor
+.cursor/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
