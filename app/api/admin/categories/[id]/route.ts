@@ -47,9 +47,23 @@ export async function DELETE(
   }
 
   try {
-    await prisma.category.delete({
-      where: { id },
+    // Block if active (non-deleted) menus exist in this category
+    const activeMenus = await prisma.menu.count({
+      where: { categoryId: id, deletedAt: null },
     });
+    if (activeMenus > 0) {
+      return NextResponse.json(
+        { message: `ไม่สามารถลบได้ ยังมีเมนูอยู่ ${activeMenus} รายการ กรุณาลบเมนูก่อน` },
+        { status: 400 }
+      );
+    }
+
+    // Permanently delete soft-deleted menus in this category (they still hold the FK)
+    await prisma.menu.deleteMany({
+      where: { categoryId: id, deletedAt: { not: null } },
+    });
+
+    await prisma.category.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error(err);
