@@ -53,18 +53,20 @@ export default function CategoryList({ initialCategories }: Props) {
   async function deleteCategory(id: number) {
     if (!confirm("ต้องการลบหมวดหมู่นี้หรือไม่?")) return;
     const old = categories;
-    const updated = categories.filter((c) => c.id !== id);
-    setCategories(updated);
+    setCategories(categories.filter((c) => c.id !== id));
     try {
       const res = await fetch(`/api/admin/categories/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
-        throw new Error();
+        const data = await res.json().catch(() => ({}));
+        setCategories(old);
+        alert(data.message ?? "ไม่สามารถลบหมวดหมู่ได้");
+        return;
       }
     } catch {
       setCategories(old);
-      alert("ไม่สามารถลบหมวดหมู่ได้ (อาจมีเมนูที่ผูกกับหมวดนี้อยู่)");
+      alert("ไม่สามารถลบหมวดหมู่ได้");
     }
   }
 

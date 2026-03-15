@@ -55,14 +55,16 @@ export default function RequestList({ initialRequests }: Props) {
   async function deleteRequest(id: number) {
     if (!confirm("ต้องการลบคำขอพิเศษนี้หรือไม่?")) return;
     const old = requests;
-    const updated = requests.filter((r) => r.id !== id);
-    setRequests(updated);
+    setRequests(requests.filter((r) => r.id !== id));
     try {
       const res = await fetch(`/api/admin/requests/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
-        throw new Error();
+        const data = await res.json().catch(() => ({}));
+        setRequests(old);
+        alert(data.message ?? "ไม่สามารถลบคำขอพิเศษได้");
+        return;
       }
     } catch {
       setRequests(old);

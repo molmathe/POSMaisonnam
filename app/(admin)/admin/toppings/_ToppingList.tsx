@@ -69,14 +69,16 @@ export default function ToppingList({ initialToppings }: Props) {
   async function deleteTopping(id: number) {
     if (!confirm("ต้องการลบ Topping นี้หรือไม่?")) return;
     const old = toppings;
-    const updated = toppings.filter((t) => t.id !== id);
-    setToppings(updated);
+    setToppings(toppings.filter((t) => t.id !== id));
     try {
       const res = await fetch(`/api/admin/toppings/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
-        throw new Error();
+        const data = await res.json().catch(() => ({}));
+        setToppings(old);
+        alert(data.message ?? "ไม่สามารถลบ Topping ได้");
+        return;
       }
     } catch {
       setToppings(old);
