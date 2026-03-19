@@ -308,7 +308,7 @@ export default function MenuForm({ categories, toppings, specialRequests }: Prop
           <input
             id="menu-image-input"
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
             className="hidden"
             onChange={handleFileChange}
           />

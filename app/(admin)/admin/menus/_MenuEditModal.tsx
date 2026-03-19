@@ -201,7 +201,7 @@ export default function MenuEditModal({
               <input
                 id="edit-menu-image"
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
                 className="hidden"
                 onChange={(e: ChangeEvent<HTMLInputElement>) => {
                   const f = e.target.files?.[0];

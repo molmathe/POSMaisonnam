@@ -10,17 +10,18 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Prevent Cloudflare from caching API so form submits and buttons work correctly
+  async rewrites() {
+    return [
+      {
+        source: "/uploads/:path*",
+        destination: "/api/uploads/:path*",
+      },
+    ];
+  },
   async headers() {
     return [
       {
         source: "/api/:path*",
-        headers: [
-          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate" },
-        ],
-      },
-      {
-        source: "/uploads/:path*",
         headers: [
           { key: "Cache-Control", value: "no-store, no-cache, must-revalidate" },
         ],
