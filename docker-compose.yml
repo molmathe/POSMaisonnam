@@ -1,0 +1,32 @@
+services:
+  # ฐานข้อมูล PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: maisonnam_db
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: maisonnam_pos
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # ฝั่ง Web Application (เตรียมไว้สำหรับ Next.js)
+  web:
+    build: .
+    container_name: maisonnam_web
+    restart: always
+    ports:
+      - "5000:3000"
+    environment:
+      - DATABASE_URL=postgresql://admin:password123@db:5432/maisonnam_pos?schema=public
+    depends_on:
+      - db
+    volumes:
+      - uploads:/app/public/uploads
+
+volumes:
+  pgdata:
+  uploads:
