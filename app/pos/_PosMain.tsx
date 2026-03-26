@@ -279,7 +279,7 @@ export default function PosMain({
                 href="/admin"
                 className="text-[12px] font-semibold text-gray-500 active:opacity-60"
               >
-                ผู้ดูแล
+                Admin
               </a>
             )}
             <button

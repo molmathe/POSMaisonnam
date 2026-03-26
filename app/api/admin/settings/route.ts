@@ -1,20 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
 
-
-export async function GET(req: NextRequest) {
-  const auth = await requireAuth(req, "OWNER");
-  if (auth instanceof NextResponse) return auth;
-
+export async function GET() {
   const settings = await prisma.systemSetting.findMany();
   return NextResponse.json(settings);
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth(req, "OWNER");
-  if (auth instanceof NextResponse) return auth;
-
   try {
     const body = await req.json();
     const key = typeof body.key === "string" ? body.key.trim() : "";

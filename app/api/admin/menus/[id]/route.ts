@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
-
 
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth(req, "OWNER");
-  if (auth instanceof NextResponse) return auth;
-
   const { id: idParam } = await params;
   const id = Number(idParam);
   if (!id || Number.isNaN(id)) {
@@ -55,30 +49,21 @@ export async function PUT(
       },
     });
 
-    // FIX 6: Wrap topping/request replace in a transaction to prevent partial updates
-    if (toppingIds !== undefined || requestIds !== undefined) {
-      const ops: Prisma.PrismaPromise<unknown>[] = [];
-      if (toppingIds !== undefined) {
-        ops.push(prisma.menuTopping.deleteMany({ where: { menuId: id } }));
-        if (toppingIds.length > 0) {
-          ops.push(
-            prisma.menuTopping.createMany({
-              data: toppingIds.map((toppingId: number) => ({ menuId: id, toppingId })),
-            })
-          );
-        }
+    if (toppingIds !== undefined) {
+      await prisma.menuTopping.deleteMany({ where: { menuId: id } });
+      if (toppingIds.length > 0) {
+        await prisma.menuTopping.createMany({
+          data: toppingIds.map((toppingId: number) => ({ menuId: id, toppingId })),
+        });
       }
-      if (requestIds !== undefined) {
-        ops.push(prisma.menuSpecialRequest.deleteMany({ where: { menuId: id } }));
-        if (requestIds.length > 0) {
-          ops.push(
-            prisma.menuSpecialRequest.createMany({
-              data: requestIds.map((specialRequestId: number) => ({ menuId: id, specialRequestId })),
-            })
-          );
-        }
+    }
+    if (requestIds !== undefined) {
+      await prisma.menuSpecialRequest.deleteMany({ where: { menuId: id } });
+      if (requestIds.length > 0) {
+        await prisma.menuSpecialRequest.createMany({
+          data: requestIds.map((specialRequestId: number) => ({ menuId: id, specialRequestId })),
+        });
       }
-      await prisma.$transaction(ops);
     }
 
     const updated = await prisma.menu.findUnique({
@@ -110,12 +95,9 @@ export async function PUT(
 }
 
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth(req, "OWNER");
-  if (auth instanceof NextResponse) return auth;
-
   const { id: idParam } = await params;
   const id = Number(idParam);
   if (!id || Number.isNaN(id)) {
@@ -137,3 +119,4 @@ export async function DELETE(
     );
   }
 }
+

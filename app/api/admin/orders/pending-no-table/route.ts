@@ -1,14 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 /** PENDING orders with no table (for admin cleanup). */
-export async function GET(req: NextRequest) {
-  const auth = await requireAuth(req, "OWNER");
-  if (auth instanceof NextResponse) return auth;
-
+export async function GET() {
   const orders = await prisma.order.findMany({
     where: { status: "PENDING", tableId: null, items: { some: {} } },
     include: {

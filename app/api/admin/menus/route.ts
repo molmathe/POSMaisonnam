@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
 
-
-export async function GET(req: NextRequest) {
-  const auth = await requireAuth(req, "OWNER");
-  if (auth instanceof NextResponse) return auth;
-
+export async function GET() {
   const menusRaw = await prisma.menu.findMany({
     where: { deletedAt: null },
     include: {
@@ -31,9 +26,6 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth(req, "OWNER");
-  if (auth instanceof NextResponse) return auth;
-
   try {
     const body = await req.json();
     const nameTh = typeof body.nameTh === "string" ? body.nameTh.trim() : "";
@@ -91,3 +83,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

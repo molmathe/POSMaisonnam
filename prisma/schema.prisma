@@ -122,10 +122,6 @@ model Order {
   items      OrderItem[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
-
-  // FIX 9: Performance indexes for common query patterns
-  @@index([status, tableId])
-  @@index([status, paidAt])
 }
 
 enum OrderStatus {
@@ -159,10 +155,6 @@ model OrderItem {
 
   order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   menu         Menu    @relation(fields: [menuId], references: [id])
-
-  // FIX 9: Performance indexes for common query patterns
-  @@index([orderId])
-  @@index([sentToKitchen])
 }
 
 // ================== ตั้งค่าระบบ (ใบเสร็จ, การแจ้งเตือน) ==================

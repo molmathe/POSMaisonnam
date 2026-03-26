@@ -1,16 +1,5 @@
 // Browser-only print utilities — call only in client components
 
-// FIX 5: HTML escape function to prevent XSS in print templates
-function esc(str: string | null | undefined): string {
-  if (!str) return "";
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 /** Returns human-readable order ID: DDMMYYHHMM (e.g. 1303261523) */
 export function orderDisplayId(createdAt: string | Date): string {
   const d = new Date(createdAt);
@@ -52,13 +41,13 @@ export function printKitchenTicket(
   const rows = items
     .map((item) => {
       const tops = Array.isArray(item.toppings) && item.toppings.length
-        ? `<div class="sub">Topping: ${(item.toppings as { name?: string }[]).map((t) => esc(t.name ?? String(t))).join(", ")}</div>`
+        ? `<div class="sub">Topping: ${(item.toppings as { name?: string }[]).map((t) => t.name ?? t).join(", ")}</div>`
         : "";
       const reqs = Array.isArray(item.requests) && item.requests.length
-        ? `<div class="sub">คำขอ: ${(item.requests as string[]).map(esc).join(", ")}</div>`
+        ? `<div class="sub">คำขอ: ${(item.requests as string[]).join(", ")}</div>`
         : "";
-      const note = item.note ? `<div class="sub">หมายเหตุ: ${esc(item.note)}</div>` : "";
-      return `<div class="item"><span class="qty">x${item.quantity}</span> <span class="name">${esc(item.menu.nameTh)}</span>${tops}${reqs}${note}</div>`;
+      const note = item.note ? `<div class="sub">หมายเหตุ: ${item.note}</div>` : "";
+      return `<div class="item"><span class="qty">x${item.quantity}</span> <span class="name">${item.menu.nameTh}</span>${tops}${reqs}${note}</div>`;
     })
     .join('<hr class="dash">');
 
@@ -78,9 +67,9 @@ export function printKitchenTicket(
   @media print{body{max-width:100%}}
 </style></head><body>
 <h2>ใบสั่งครัว</h2>
-<div class="meta">โต๊ะ: <strong>${esc(tableName)}</strong>${order.customer?.name ? ` · ${esc(order.customer.name)}` : ""}</div>
-<div class="meta">เวลา: ${esc(now)}</div>
-${servedBy ? `<div class="meta">พนักงาน: ${esc(servedBy)}</div>` : ""}
+<div class="meta">โต๊ะ: <strong>${tableName}</strong>${order.customer?.name ? ` · ${order.customer.name}` : ""}</div>
+<div class="meta">เวลา: ${now}</div>
+${servedBy ? `<div class="meta">พนักงาน: ${servedBy}</div>` : ""}
 <hr>
 ${rows}
 <script>window.onload=()=>{window.print();setTimeout(()=>window.close(),500)}<\/script>
@@ -119,13 +108,13 @@ export function printReceipt(order: ReceiptOrder, paperWidth?: PrintPaperWidth |
   const rows = order.items
     .map((i) => {
       const tops = Array.isArray(i.toppings) && i.toppings.length
-        ? `<div class="note">+ ${(i.toppings as { name?: string }[]).map((t) => esc(t.name ?? String(t))).join(", ")}</div>`
+        ? `<div class="note">+ ${(i.toppings as { name?: string }[]).map((t) => t.name ?? t).join(", ")}</div>`
         : "";
       const reqs = Array.isArray(i.requests) && i.requests.length
-        ? `<div class="note">★ ${(i.requests as string[]).map(esc).join(", ")}</div>`
+        ? `<div class="note">★ ${(i.requests as string[]).join(", ")}</div>`
         : "";
-      const note = i.note ? `<div class="note">หมายเหตุ: ${esc(i.note)}</div>` : "";
-      return `<div class="row"><span>${esc(i.menu.nameTh)} x${i.quantity}</span><span>฿${(i.price * i.quantity).toFixed(0)}</span></div>${tops}${reqs}${note}`;
+      const note = i.note ? `<div class="note">หมายเหตุ: ${i.note}</div>` : "";
+      return `<div class="row"><span>${i.menu.nameTh} x${i.quantity}</span><span>฿${(i.price * i.quantity).toFixed(0)}</span></div>${tops}${reqs}${note}`;
     })
     .join("");
 
@@ -135,7 +124,7 @@ export function printReceipt(order: ReceiptOrder, paperWidth?: PrintPaperWidth |
     ? `<img src="https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodeURIComponent(order.orderQrUrl)}" alt="QR" width="${qrSize}" height="${qrSize}" style="display:block;margin:6px auto" />`
     : "";
 
-  const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>ใบเสร็จ #${esc(displayId)}</title>
+  const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>ใบเสร็จ #${displayId}</title>
 <style>
   @page{size:${width} auto;margin:2mm}
   body{font-family:'TH Sarabun New',Sarabun,sans-serif;padding:8px;margin:0;width:100%;max-width:${width};box-sizing:border-box}
@@ -160,10 +149,10 @@ export function printReceipt(order: ReceiptOrder, paperWidth?: PrintPaperWidth |
 <p class="place">แม่กลอง สมุทรสงคราม</p>
 </div>
 ${sep}
-<div class="meta">บิล #${esc(displayId)} · โต๊ะ ${esc(order.table?.name ?? "-")}</div>
-${order.customer?.name ? `<div class="meta">ลูกค้า: ${esc(order.customer.name)}</div>` : ""}
-<div class="meta">เวลา: ${esc(paidAt)}</div>
-${order.servedBy ? `<div class="meta">พนักงาน: ${esc(order.servedBy)}</div>` : ""}
+<div class="meta">บิล #${displayId} · โต๊ะ ${order.table?.name ?? "-"}</div>
+${order.customer?.name ? `<div class="meta">ลูกค้า: ${order.customer.name}</div>` : ""}
+<div class="meta">เวลา: ${paidAt}</div>
+${order.servedBy ? `<div class="meta">พนักงาน: ${order.servedBy}</div>` : ""}
 ${sep}
 ${rows}
 ${sep}
